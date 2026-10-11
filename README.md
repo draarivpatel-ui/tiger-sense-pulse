@@ -73,7 +73,19 @@ From `sample-output.txt` (local test, see "How it was tested" below):
 
 ## How it was tested
 
-There is **no automated unit-test suite**; the test is running the whole pipeline against a database:
+### Offline test suite (no database needed)
+
+```bash
+./test.sh        # same as: python3 -m unittest discover -s tests -v
+```
+
+39 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions (`.github/workflows/tests.yml`).
+
+- **SQL file lint** (`tests/test_sql_lint.py`, 15 tests): every `.sql` file is clean UTF-8 with a comment header, strings and comments are closed, parentheses balance, every statement ends with `;`, `\echo` appears only in `04_queries.sql`, `DROP`s only touch the four demo objects and use `IF EXISTS`, no passwords in connection strings, `run.sh` applies the four files in order with `ON_ERROR_STOP`, the README schema table matches the real `CREATE` columns, every `alias.column` in `04_queries.sql`, `dashboard.py` and `vector_search.py` exists, and the dashboard's anomaly query is identical to query 5.
+- **Generator unit tests** (`tests/test_generator.py`, 13 tests): reads the constants out of `sql/02_simulate.sql` and replays the simulation in Python with seeded noise. Checks 6 sensors × 2,017 timestamps = 12,102 rows, the daily peak at 20:00 UTC (3 PM US Central), plausible temperature and humidity ranges, that both incidents hit real sensors in non-overlapping windows, and that the anomaly finder flags **exactly** the 3 injected hours (greenhouse 2, server closet 1) with no false positives across 25 random seeds. Also checks the 30 notes in `vector/notes.py` (chronological, Oct 4–10, every sensor named and covered, incident clusters on Oct 7 and Oct 9).
+- **Dashboard generator** (`tests/test_dashboard.py`, 11 tests): `psycopg` is stubbed. Checks the SVG chart (one line per sensor, every point inside the viewBox, hotter is higher, no divide-by-zero, colors cycle, names escaped) and the written `dashboard.html` (summary and anomaly rows, "No anomalies found.", an empty database, HTML escaping, and that it only queries the continuous aggregates, never the raw hypertable).
+
+The tests check the files and the generator logic, not a live database. The end-to-end test is still running the whole pipeline:
 
 ```bash
 DATABASE_URL="postgres://..." ./run.sh     # builds schema, simulates data, creates CAGGs, runs the queries
@@ -97,7 +109,7 @@ Note: `sample-output.txt` shows times in UTC.
 `vector/` adds AI-powered semantic search over **staff maintenance notes** stored right next to the sensor readings, on the same Tiger Cloud service.
 
 - `vector/05_vector_schema.sql` enables `vector` (pgvector 0.8.7) and `vectorscale` (pgvectorscale 0.9.0), creates a `maintenance_notes` **hypertable** with a `VECTOR(384)` column, and builds a **StreamingDiskANN** index (`USING diskann ... vector_cosine_ops`).
-- `vector/notes.py` holds 30 synthetic notes (Oct 4-10, 2026). Two clusters line up with the incidents injected into the sensor data (greenhouse vent shut, server-closet AC failure).
+- `vector/notes.py` holds 30 synthetic notes (Oct 4-10, 2026), each tagged with its sensor's name; the loader looks the sensor id up by name, so the notes attach to the right sensor on any fresh database. Two clusters line up with the incidents injected into the sensor data (greenhouse vent shut, server-closet AC failure).
 - `vector/vector_search.py` embeds the notes locally with fastembed (`BAAI/bge-small-en-v1.5`, no API key), loads them, and runs similarity search combined with a **time filter**, a **metadata filter** (sensor type), and a join to the `sensor_hourly` continuous aggregate so each hit shows that hour's peak temperature.
 
 Real output from Tiger Cloud is in `vector/sample-output.txt`. For example, "the air conditioning broke and the room overheated" returns the two server-closet AC notes from Oct 9 first (similarity 0.764 and 0.757), and the query plan shows the diskann index being used on each chunk.
@@ -127,6 +139,10 @@ dashboard.py                      static HTML dashboard from the CAGGs
 sample-output.txt                 output of ./run.sh from the local test
 dashboard.html / dashboard-preview.png   generated dashboard from the local test
 docs/hero.png                     screenshot of dashboard.html used at the top of this README
+test.sh                           runs the offline test suite (tests/)
+tests/                            SQL lint, generator and dashboard unit tests (standard library only)
+vector/                           Part 2: pgvector + pgvectorscale semantic search over maintenance notes
+mcp/                              Part 3: Tiger CLI + MCP client
 ```
 
 License: MIT

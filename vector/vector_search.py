@@ -29,8 +29,8 @@ with psycopg.connect(os.environ["DATABASE_URL"], autocommit=True) as conn:
         cur.execute("TRUNCATE maintenance_notes")
         vecs = emb([n[3] for n in NOTES])
         cur.executemany(
-            "INSERT INTO maintenance_notes (time, sensor_id, author, note, embedding) VALUES (%s::timestamptz AT TIME ZONE 'UTC', %s, %s, %s, %s::vector)",
-            [(t + ":00", sid, a, note, v) for (t, sid, a, note), v in zip(NOTES, vecs)],
+            "INSERT INTO maintenance_notes (time, sensor_id, author, note, embedding) VALUES (%s::timestamptz AT TIME ZONE 'UTC', (SELECT id FROM sensors WHERE name = %s), %s, %s, %s::vector)",
+            [(t + ":00", sensor, a, note, v) for (t, sensor, a, note), v in zip(NOTES, vecs)],
         )
         print(f"Loaded {len(NOTES)} notes with 384-dim embeddings.")
     cur.execute("SELECT extversion FROM pg_extension WHERE extname='vector'"); print("pgvector", cur.fetchone()[0])

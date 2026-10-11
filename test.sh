@@ -3,4 +3,4 @@
 # Python 3.9+ standard library only: no database, no pip install, no network.
 set -euo pipefail
 cd "$(dirname "$0")"
-python3 -m unittest discover -s tests -v "$@"
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v "$@"

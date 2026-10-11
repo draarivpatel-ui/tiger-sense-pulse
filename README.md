@@ -16,6 +16,71 @@ A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)
 | **Simulate an IoT sensor dataset** with Tiger Cloud | `sql/02_simulate.sql` |
 | Accelerate Dashboards with **Continuous Aggregates** | `sql/03_continuous_aggregates.sql`, `dashboard.py` |
 
+## Judge it in 60 seconds
+
+No database, no `pip install`, no network: just `git` and Python 3.9+. Everything below was copied from a real run (Python 3.12, Oct 11, 2026).
+
+**1. Get the code and run the tests (~2 s):**
+
+```bash
+git clone https://github.com/draarivpatel-ui/tiger-sense-pulse.git
+cd tiger-sense-pulse
+bash test.sh
+```
+
+Expected output (35 of the 39 `... ok` lines trimmed; your time will differ):
+
+```
+test_empty_database_still_writes_a_page (test_dashboard.DashboardPage.test_empty_database_still_writes_a_page) ... ok
+test_escapes_text_from_the_database (test_dashboard.DashboardPage.test_escapes_text_from_the_database) ... ok
+...
+test_strings_and_comments_are_terminated (test_sql_lint.SqlFileLint.test_strings_and_comments_are_terminated) ... ok
+test_vector_schema (test_sql_lint.SqlFileLint.test_vector_schema) ... ok
+
+----------------------------------------------------------------------
+Ran 39 tests in 1.183s
+
+OK
+```
+
+**2. Replay the IoT simulation and the anomaly finder offline (~1 s).** This uses the same Python replay of `sql/02_simulate.sql` and query 5 that the tests use, with the clock pinned and seeded noise so the output is repeatable:
+
+```bash
+cd tests && python3 -c "
+from datetime import datetime, timezone
+from test_generator import simulate, anomalies
+data = simulate(datetime(2026, 10, 10, 23, tzinfo=timezone.utc), seed=1)
+print('rows:', len(data))
+for name, hour in anomalies(data):
+    print('anomaly:', name, hour.strftime('%Y-%m-%d %H:00 UTC'))
+"
+```
+
+Expected output:
+
+```
+rows: 12102
+anomaly: greenhouse 2026-10-07 19:00 UTC
+anomaly: greenhouse 2026-10-07 20:00 UTC
+anomaly: server-rm 2026-10-09 17:00 UTC
+```
+
+12,102 rows and exactly the three injected hours (greenhouse vent shut for two, server-closet AC failure for one), no false positives. Compare with what the real TimescaleDB run returned for the same query in `sample-output.txt` (`grep -A6 "^--- 5. Anomaly" sample-output.txt`, run from the repo root):
+
+```
+--- 5. Anomaly finder: hours running > 4 C above that sensor's typical (median) for the same hour of day
+    name    |         bucket         | max_temp | above_typical 
+------------+------------------------+----------+---------------
+ greenhouse | 2026-10-07 19:00:00+00 |     42.2 |           8.8
+ greenhouse | 2026-10-07 20:00:00+00 |     42.3 |           9.0
+ server-rm  | 2026-10-09 17:00:00+00 |     38.2 |          12.0
+(3 rows)
+```
+
+**3. See the dashboard:** open `dashboard.html` in any browser (a static page generated from the continuous aggregates; preview at the top of this README).
+
+The full pipeline on a live database is `DATABASE_URL=... ./run.sh` (see "Run it on Tiger Cloud" below); steps 1 and 2 check the files and the generator logic, not a live database.
+
 ## Features
 
 1. **Hypertable.** `sensor_data` is created with `WITH (tsdb.hypertable, tsdb.segmentby = 'sensor_id', tsdb.orderby = 'time DESC', tsdb.chunk_interval = '1 day')`, so TimescaleDB splits it into one chunk per day. A normal `sensors` table holds metadata (name, type, location) and is joined in queries.

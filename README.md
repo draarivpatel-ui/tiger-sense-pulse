@@ -92,6 +92,22 @@ Note: `sample-output.txt` shows times in UTC.
 - **Not every query was re-run on Tiger Cloud.** The full `./run.sh` output in `sample-output.txt` is from the self-hosted run; on Tiger Cloud the schema, simulation, aggregates and the `sensor_daily` summary were run in the Console.
 - **The dashboard is static**: re-run `python dashboard.py` to refresh it.
 
+## Part 2 (Oct 11): vector search with pgvector + pgvectorscale
+
+`vector/` adds AI-powered semantic search over **staff maintenance notes** stored right next to the sensor readings, on the same Tiger Cloud service.
+
+- `vector/05_vector_schema.sql` enables `vector` (pgvector 0.8.7) and `vectorscale` (pgvectorscale 0.9.0), creates a `maintenance_notes` **hypertable** with a `VECTOR(384)` column, and builds a **StreamingDiskANN** index (`USING diskann ... vector_cosine_ops`).
+- `vector/notes.py` holds 30 synthetic notes (Oct 4-10, 2026). Two clusters line up with the incidents injected into the sensor data (greenhouse vent shut, server-closet AC failure).
+- `vector/vector_search.py` embeds the notes locally with fastembed (`BAAI/bge-small-en-v1.5`, no API key), loads them, and runs similarity search combined with a **time filter**, a **metadata filter** (sensor type), and a join to the `sensor_hourly` continuous aggregate so each hit shows that hour's peak temperature.
+
+Real output from Tiger Cloud is in `vector/sample-output.txt`. For example, "the air conditioning broke and the room overheated" returns the two server-closet AC notes from Oct 9 first (similarity 0.764 and 0.757), and the query plan shows the diskann index being used on each chunk.
+
+Run it: `pip install psycopg[binary] fastembed` then `DATABASE_URL=... python vector/vector_search.py --load`
+
+## Part 3 (Oct 11): Tiger CLI + MCP with an AI agent
+
+The Tiger CLI (v0.26.0) was installed, authenticated with `tiger auth login --headless` (device code approved in the Tiger Console), and `tiger service list` shows the `mlh-hackweek` service. `mcp/mcp_client.py` launches `tiger mcp start` over stdio and lets an AI agent (Hark, the assistant that built this repo) list the 19 Tiger MCP tools and call `service_list` and `db_query` against the live service. Transcript: `mcp/sample-transcript.txt`.
+
 ## Built with AI assistance
 
 Honest disclosure: this project was built with AI assistance. An AI assistant (Hark) wrote the SQL, the Python dashboard and this README and ran the local tests on behalf of Aariv Patel (GitHub: draarivpatel-ui) for his GHW Hacktoberfest participation. The schema and queries follow Tiger Data's tutorials:

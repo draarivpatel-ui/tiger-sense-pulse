@@ -1,0 +1,28 @@
+Connected to MCP server: tiger 0.26.0
+
+19 tools exposed:
+  - db_query
+  - db_schema
+  - feedback
+  - search_docs
+  - service_create
+  - service_delete
+  - service_fork
+  - service_get
+  - service_list
+  - service_logs
+  - service_metrics_available
+  - service_metrics_details
+  - service_metrics_series
+  - service_rename
+  - service_resize
+  - service_start
+  - service_stop
+  - service_update_password
+  - view_skill
+
+>>> call service_list {}
+{"services":[{"created":"2026-10-10T19:19:50Z","environment":"DEV","id":"mi581vmzuw","name":"mlh-hackweek","region":"us-east-1","resources":{"cpu":"shared","memory":"shared"},"status":"READY","type":"TIMESCALEDB"}]}
+
+>>> call db_query {"service_id": "mi581vmzuw", "query": "SELECT s.name, count(*) AS notes FROM maintenance_notes n JOIN sensors s ON s.id=n.sensor_id GROUP BY 1 ORDER BY 2 DESC"}
+{"execution_time":"71.055935ms","result_sets":[{"columns":[{"name":"name","type":"text"},{"name":"notes","type":"int8"}],"command_tag":"SELECT 6","rows":[["server-rm","7"],["greenhouse","7"],["lab-1","4"],["lab-2","4"],["library","4"],["courtyard","4"]],"rows_affected":6}]}

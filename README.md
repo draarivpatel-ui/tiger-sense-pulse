@@ -76,7 +76,7 @@ From `sample-output.txt` (local test, see "How it was tested" below):
 ### Offline test suite (no database needed)
 
 ```bash
-./test.sh        # same as: python3 -m unittest discover -s tests -v
+bash test.sh     # same as: python3 -m unittest discover -s tests -v
 ```
 
 39 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions (`.github/workflows/tests.yml`).

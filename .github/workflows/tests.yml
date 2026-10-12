@@ -2,7 +2,7 @@ name: tests
 on: [push, pull_request]
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: ubuntu-latest moves to 26.04 from Oct 19, 2026 (actions/runner-images#14748)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

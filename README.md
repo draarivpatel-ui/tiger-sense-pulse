@@ -225,4 +225,17 @@ mcp/                              Part 3: Tiger CLI + MCP client
 finance/                          Part 4: real-time crypto prices -> hypertable + 1-minute OHLC continuous aggregate
 ```
 
+## Third-party licences
+
+Nothing third-party is vendored in this repo; the libraries below are installed by whoever runs it. Checked Oct 13, 2026:
+
+| What | Used for | Licence | Source |
+|---|---|---|---|
+| psycopg 3 (`psycopg[binary]`) | Postgres driver for every script | LGPL-3.0 | https://github.com/psycopg/psycopg |
+| fastembed | local embeddings in Part 2 | Apache-2.0 | https://github.com/qdrant/fastembed |
+| BAAI/bge-small-en-v1.5 | embedding model fastembed downloads at run time (Part 2) | MIT | https://huggingface.co/BAAI/bge-small-en-v1.5 |
+| CoinGecko Keyless Public API | live crypto prices in Part 4 | CoinGecko API terms: credit CoinGecko with the words "Powered by CoinGecko" | https://www.coingecko.com/en/api_terms |
+
+Powered by CoinGecko. All other data in this repo is simulated.
+
 License: MIT

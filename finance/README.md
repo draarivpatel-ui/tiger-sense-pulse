@@ -10,7 +10,7 @@ Live BTC, ETH and SOL prices are polled from a public, keyless feed and written 
 
 The challenge guide uses Twelve Data, which needs an account and an API key. This version creates no new account. It uses the **CoinGecko Keyless Public API** (`https://api.coingecko.com/api/v3/simple/price`), which CoinGecko describes as "no API key, no sign-up" and "useful for quick prototyping, open-source projects, and educational use" (https://docs.coingecko.com/docs/keyless-public-api). CoinGecko's support page says its data and screenshots may be used in websites, reports and presentations without asking permission, as long as the data is credited to CoinGecko (https://support.coingecko.com/hc/en-us/articles/4538761098521).
 
-**Data provided by CoinGecko** (https://www.coingecko.com/en/api).
+**Data provided by CoinGecko** (https://www.coingecko.com/en/api). Powered by CoinGecko: CoinGecko's API terms ask users of its API to show that phrase (https://www.coingecko.com/en/api_terms).
 
 The Coinbase Exchange public API was also considered. It is keyless too, but its Market Data Terms of Use (https://www.coinbase.com/legal/market_data) allow personal or research use only and forbid displaying the data, or charts derived from it, to any third party without written consent. A public repo and a screenshot shared with MLH would break that, so Coinbase was not used.
 

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sensor Pulse</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #ffffff;
+      --text: #1a1a1a;
+      --muted: #4a5568;
+      --surface: #f7fafc;
+      --border: #d2d6dc;
+      --accent: #0b5fff;
+      --accent-visited: #6b2fb3;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1rem 3rem;
+    }
+
+    h1, h2 {
+      line-height: 1.25;
+      margin-top: 0;
+    }
+
+    p { margin: 0.75rem 0; }
+
+    .lede {
+      font-size: 1.05rem;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+
+    figure { margin: 0 0 1.5rem; }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      display: block;
+    }
+
+    figcaption {
+      margin-top: 0.5rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0 1.5rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.6rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--surface);
+      font-weight: 600;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 2px;
+    }
+
+    a:visited { color: var(--accent-visited); }
+
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Sensor Pulse</h1>
+      <p class="lede">six simulated school sensors stream into a TimescaleDB hypertable on Tiger Cloud, continuous aggregates roll them up hourly and daily, and an anomaly query catches the two incidents hidden in the data.</p>
+    </header>
+
+    <figure>
+      <img src="hero.png" alt="Sensor Pulse dashboard preview showing six sensor trends and anomaly summary.">
+      <figcaption>Generated dashboard preview from this repository.</figcaption>
+    </figure>
+
+    <section aria-labelledby="challenges-title">
+      <h2 id="challenges-title">MLH GHW Tiger Data challenges</h2>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">GHW challenge</th>
+            <th scope="col">Where it lives</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Set up a Tiger Cloud service and create your first <strong>Hypertable</strong></td>
+            <td><a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/sql/01_schema.sql">sql/01_schema.sql</a></td>
+          </tr>
+          <tr>
+            <td><strong>Simulate an IoT sensor dataset</strong> with Tiger Cloud</td>
+            <td><a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/sql/02_simulate.sql">sql/02_simulate.sql</a></td>
+          </tr>
+          <tr>
+            <td>Accelerate Dashboards with <strong>Continuous Aggregates</strong></td>
+            <td>
+              <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/sql/03_continuous_aggregates.sql">sql/03_continuous_aggregates.sql</a>,
+              <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/dashboard.py">dashboard.py</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="links-title">
+      <h2 id="links-title">Links</h2>
+      <ul>
+        <li><a href="../dashboard.html">Open the generated dashboard</a></li>
+        <li><a href="https://github.com/draarivpatel-ui/tiger-sense-pulse">View the repository on GitHub</a></li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="run-title">
+      <h2 id="run-title">Run it</h2>
+      <pre><code>git clone https://github.com/draarivpatel-ui/tiger-sense-pulse.git
+cd tiger-sense-pulse
+bash test.sh</code></pre>
+    </section>
+  </main>
+</body>
+</html>

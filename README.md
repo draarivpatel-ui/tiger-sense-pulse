@@ -18,7 +18,7 @@ A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)
 
 ## Judge it in 60 seconds
 
-No database, no `pip install`, no network: just `git` and Python 3.9+. Everything below was copied from a real run (Python 3.12, Oct 11, 2026).
+No database, no `pip install`, no network: just `git` and Python 3.9+. Everything below was copied from real runs (Python 3.12, Oct 11–12, 2026).
 
 **1. Get the code and run the tests (~2 s):**
 
@@ -28,7 +28,7 @@ cd tiger-sense-pulse
 bash test.sh
 ```
 
-Expected output (35 of the 39 `... ok` lines trimmed; your time will differ):
+Expected output (42 of the 46 `... ok` lines trimmed; your time will differ):
 
 ```
 test_empty_database_still_writes_a_page (test_dashboard.DashboardPage.test_empty_database_still_writes_a_page) ... ok
@@ -38,7 +38,7 @@ test_strings_and_comments_are_terminated (test_sql_lint.SqlFileLint.test_strings
 test_vector_schema (test_sql_lint.SqlFileLint.test_vector_schema) ... ok
 
 ----------------------------------------------------------------------
-Ran 39 tests in 1.183s
+Ran 46 tests in 0.974s
 
 OK
 ```
@@ -144,11 +144,12 @@ From `sample-output.txt` (local test, see "How it was tested" below):
 bash test.sh     # same as: python3 -m unittest discover -s tests -v
 ```
 
-39 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions (`.github/workflows/tests.yml`).
+46 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions (`.github/workflows/tests.yml`).
 
 - **SQL file lint** (`tests/test_sql_lint.py`, 15 tests): every `.sql` file is clean UTF-8 with a comment header, strings and comments are closed, parentheses balance, every statement ends with `;`, `\echo` appears only in `04_queries.sql`, `DROP`s only touch the four demo objects and use `IF EXISTS`, no passwords in connection strings, `run.sh` applies the four files in order with `ON_ERROR_STOP`, the README schema table matches the real `CREATE` columns, every `alias.column` in `04_queries.sql`, `dashboard.py` and `vector_search.py` exists, and the dashboard's anomaly query is identical to query 5.
 - **Generator unit tests** (`tests/test_generator.py`, 13 tests): reads the constants out of `sql/02_simulate.sql` and replays the simulation in Python with seeded noise. Checks 6 sensors × 2,017 timestamps = 12,102 rows, the daily peak at 20:00 UTC (3 PM US Central), plausible temperature and humidity ranges, that both incidents hit real sensors in non-overlapping windows, and that the anomaly finder flags **exactly** the 3 injected hours (greenhouse 2, server closet 1) with no false positives across 25 random seeds. Also checks the 30 notes in `vector/notes.py` (chronological, Oct 4–10, every sensor named and covered, incident clusters on Oct 7 and Oct 9).
 - **Dashboard generator** (`tests/test_dashboard.py`, 11 tests): `psycopg` is stubbed. Checks the SVG chart (one line per sensor, every point inside the viewBox, hotter is higher, no divide-by-zero, colors cycle, names escaped) and the written `dashboard.html` (summary and anomaly rows, "No anomalies found.", an empty database, HTML escaping, and that it only queries the continuous aggregates, never the raw hypertable).
+- **README consistency** (`tests/test_readme.py`, 7 tests): this README can't drift from the repo. The test counts above equal the real suite, every path in "Files" and every backticked file name exists, relative links resolve, the anomaly table quoted in step 2 is byte-for-byte the block in `sample-output.txt`, and the replay output quoted in step 2 is what the generator actually prints.
 
 The tests check the files and the generator logic, not a live database. The end-to-end test is still running the whole pipeline:
 
@@ -205,7 +206,7 @@ sample-output.txt                 output of ./run.sh from the local test
 dashboard.html / dashboard-preview.png   generated dashboard from the local test
 docs/hero.png                     screenshot of dashboard.html used at the top of this README
 test.sh                           runs the offline test suite (tests/)
-tests/                            SQL lint, generator and dashboard unit tests (standard library only)
+tests/                            SQL lint, generator, dashboard and README-consistency tests (standard library only)
 vector/                           Part 2: pgvector + pgvectorscale semantic search over maintenance notes
 mcp/                              Part 3: Tiger CLI + MCP client
 ```

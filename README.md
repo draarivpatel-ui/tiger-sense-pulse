@@ -1,6 +1,6 @@
 # Sensor Pulse: simulated school IoT sensors on Tiger Cloud (TimescaleDB)
 
-**Live link:** https://github.com/draarivpatel-ui/tiger-sense-pulse (no hosted web app: this is a database project. It runs on your own Tiger Cloud service with `./run.sh`, and `dashboard.html` is a static page it generates.)
+**Live link:** https://github.com/draarivpatel-ui/tiger-sense-pulse (no hosted web app: this is a database project. It runs on your own Tiger Cloud service with `./run.sh`, and `dashboard.html` is a static page it generates.) A static GitHub Pages overview of the repo is at https://aariv.me/tiger-sense-pulse/docs/ and the generated dashboard at https://aariv.me/tiger-sense-pulse/dashboard.html; neither connects to a database.
 
 **One line:** six simulated school sensors stream into a TimescaleDB hypertable on Tiger Cloud, continuous aggregates roll them up hourly and daily, and an anomaly query catches the two incidents hidden in the data.
 
@@ -8,7 +8,7 @@
 
 *The generated `dashboard.html`, rendered with headless Chromium (Oct 2026).*
 
-A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)**. It covers several Tiger Data challenges in one repo (the first three below; vector search, Tiger CLI + MCP and real-time financial data are Parts 2-4 further down):
+A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)**. It covers several Tiger Data challenges in one repo (the table maps the core three plus Part 4; vector search and Tiger CLI + MCP are Parts 2 and 3 further down):
 
 | GHW challenge | Where it lives |
 |---|---|
@@ -181,13 +181,15 @@ Note: `sample-output.txt` shows times in UTC.
 - `vector/notes.py` holds 30 synthetic notes (Oct 4-10, 2026), each tagged with its sensor's name; the loader looks the sensor id up by name, so the notes attach to the right sensor on any fresh database. Two clusters line up with the incidents injected into the sensor data (greenhouse vent shut, server-closet AC failure).
 - `vector/vector_search.py` embeds the notes locally with fastembed (`BAAI/bge-small-en-v1.5`, no API key), loads them, and runs similarity search combined with a **time filter**, a **metadata filter** (sensor type), and a join to the `sensor_hourly` continuous aggregate so each hit shows that hour's peak temperature.
 
-Real output from Tiger Cloud is in `vector/sample-output.txt`. For example, "the air conditioning broke and the room overheated" returns the two server-closet AC notes from Oct 9 first (similarity 0.764 and 0.757), and the query plan shows the diskann index being used on each chunk.
+Real output from Tiger Cloud is in `vector/sample-output.txt`. Limits: the 30 notes are synthetic and written for this demo, and 30 rows is far too few to show DiskANN's speed; the run shows the index being used, not a benchmark. For example, "the air conditioning broke and the room overheated" returns the two server-closet AC notes from Oct 9 first (similarity 0.764 and 0.757), and the query plan shows the diskann index being used on each chunk.
 
 Run it: `pip install psycopg[binary] fastembed` then `DATABASE_URL=... python vector/vector_search.py --load`
 
 ## Part 3 (Oct 11): Tiger CLI + MCP with an AI agent
 
 The Tiger CLI (v0.26.0) was installed, authenticated with `tiger auth login --headless` (device code approved in the Tiger Console), and `tiger service list` shows the `mlh-hackweek` service. `mcp/mcp_client.py` launches `tiger mcp start` over stdio and lets an AI agent (Hark, the assistant that built this repo) list the 19 Tiger MCP tools and call `service_list` and `db_query` against the live service. Transcript: `mcp/sample-transcript.txt`.
+
+Run it: install the Tiger CLI, run `tiger auth login`, `pip install mcp`, then `python mcp/mcp_client.py '[["service_list", {}]]'` (the argument is a JSON list of `[tool, arguments]` pairs; with no argument it only lists the tools). Limits: the script looks for the CLI at `~/bin/tiger` (edit `TIGER` at the top if yours is elsewhere), it is a one-shot client that calls the tools you pass rather than a chat loop, and the transcript is one short session.
 
 ## Part 4 (Oct 13): real-time financial data
 
@@ -201,7 +203,7 @@ Details and limits: [finance/README.md](finance/README.md). Data provided by Coi
 
 ## Built with AI assistance
 
-Honest disclosure: this project was built with AI assistance. An AI assistant (Hark) wrote the SQL, the Python dashboard and this README and ran the local tests on behalf of Aariv Patel (GitHub: draarivpatel-ui) for his GHW Hacktoberfest participation. The schema and queries follow Tiger Data's tutorials:
+Honest disclosure: this project was built with AI assistance. An AI assistant (Hark) wrote the SQL, the Python dashboard and this README and ran the local tests on behalf of Aariv Patel (GitHub: draarivpatel-ui) for his GHW Hacktoberfest participation. The GitHub Copilot coding agent wrote two pull requests: the GitHub Pages landing page `docs/index.html` (#2) and the offline tests in `tests/test_finance_query.py` (#4). The schema and queries follow Tiger Data's tutorials:
 - [Your first hypertable](https://www.tigerdata.com/docs/build/how-to/your-first-hypertable)
 - [Simulate an IoT sensor dataset](https://www.tigerdata.com/docs/build/examples/simulate-iot-sensor-data)
 - [Continuous aggregates](https://www.tigerdata.com/docs/learn/continuous-aggregates)

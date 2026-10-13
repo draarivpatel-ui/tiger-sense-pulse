@@ -98,6 +98,20 @@
     code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    tbody th { background: var(--bg); }
   </style>
 </head>
 <body>
@@ -137,8 +151,57 @@
               <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/dashboard.py">dashboard.py</a>
             </td>
           </tr>
+          <tr>
+            <td>Ingest <strong>real-time financial data</strong> into Tiger Cloud (Part 4)</td>
+            <td>
+              <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/finance/schema.sql">finance/schema.sql</a>,
+              <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/finance/ingest.py">finance/ingest.py</a>
+            </td>
+          </tr>
         </tbody>
       </table>
+    </section>
+
+    <section aria-labelledby="parts-title">
+      <h2 id="parts-title">Parts 2&ndash;4: vector search, MCP and live crypto prices</h2>
+      <p>Later parts run on the same Tiger Cloud service. Each one has real output checked into the repository; details and limits are in the <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse#readme">README</a>.</p>
+      <table>
+        <caption class="visually-hidden">Parts 2 to 4 of the project: what each does and where it lives</caption>
+        <thead>
+          <tr>
+            <th scope="col">Part</th>
+            <th scope="col">What it does</th>
+            <th scope="col">Where it lives</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Part 2: vector search with pgvector + pgvectorscale</th>
+            <td>A <code>maintenance_notes</code> hypertable with a <code>VECTOR(384)</code> column and a StreamingDiskANN index holds 30 synthetic staff notes (Oct 4&ndash;10, 2026), embedded locally with fastembed (<code>BAAI/bge-small-en-v1.5</code>, no API key). Similarity search is combined with a time filter, a sensor-type filter and a join to the <code>sensor_hourly</code> continuous aggregate. Example: &ldquo;the air conditioning broke and the room overheated&rdquo; returns the two server-closet AC notes from Oct 9 first. Limit: 30 rows is far too few to show DiskANN&rsquo;s speed; the run shows the index being used, not a benchmark.</td>
+            <td>
+              <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/tree/main/vector">vector/</a>
+              (<a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/vector/sample-output.txt">sample output</a>)
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Part 3: Tiger CLI + MCP with an AI agent</th>
+            <td>The Tiger CLI (v0.26.0) was authenticated with <code>tiger auth login --headless</code>. <code>mcp/mcp_client.py</code> launches <code>tiger mcp start</code> over stdio and lets an AI agent (Hark) list the 19 Tiger MCP tools and call <code>service_list</code> and <code>db_query</code> against the live service. Limit: it is a one-shot client that calls the tools you pass, not a chat loop, and the transcript is one short session.</td>
+            <td>
+              <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/tree/main/mcp">mcp/</a>
+              (<a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/mcp/sample-transcript.txt">transcript</a>)
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Part 4: real-time financial data</th>
+            <td>BTC, ETH and SOL prices from the CoinGecko Keyless Public API (no key, no sign-up) land in the <code>crypto_ticks</code> hypertable, polled in one request every 20&nbsp;s with backoff on HTTP 429 and duplicate updates skipped. The <code>crypto_ohlc_1m</code> real-time continuous aggregate rolls them into 1-minute open/high/low/close candles with a refresh policy that runs every minute. Limit: the keyless price changed about once every 1 to 2 minutes, so it is near-real-time, not tick-by-tick, and the live run was short.</td>
+            <td>
+              <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/tree/main/finance">finance/</a>
+              (<a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/finance/README.md">details and limits</a>)
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Crypto price data provided by CoinGecko: <a href="https://www.coingecko.com/en/api">Powered by CoinGecko</a>. All other data in this repository is simulated.</p>
     </section>
 
     <section aria-labelledby="links-title">
@@ -158,7 +221,7 @@ bash test.sh</code></pre>
 
     <section aria-labelledby="ai-title">
       <h2 id="ai-title">Built with AI assistance</h2>
-      <p>An AI assistant (Hark) wrote the SQL, Python and README for Aariv Patel's GHW Hacktoberfest entry, and the GitHub Copilot coding agent wrote this page. All sensor data is simulated. The repository README also covers vector search, Tiger CLI + MCP and a real-time crypto feed (Powered by CoinGecko).</p>
+      <p>An AI assistant (Hark) wrote the SQL, Python and README for Aariv Patel's GHW Hacktoberfest entry. The GitHub Copilot coding agent wrote this page (#2), and Hark later added the Parts 2&ndash;4 summary from the README. All sensor data is simulated; the crypto prices in Part 4 are live data from CoinGecko (Powered by CoinGecko).</p>
     </section>
   </main>
 </body>

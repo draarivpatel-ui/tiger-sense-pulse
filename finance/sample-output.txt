@@ -1,0 +1,72 @@
+$ python finance/ingest.py --setup --seconds 330 --interval 20
+schema ready: crypto_ticks (hypertable) + crypto_ohlc_1m (continuous aggregate)
+22:08:26 UTC  429 rate limited, backing off 20s
+22:08:46 UTC  429 rate limited, backing off 40s
+22:09:26 UTC  poll  1  BTC 83,369.45  ETH 2,508.34  SOL 106.89  new=3
+22:09:46 UTC  poll  2  BTC 83,369.45  ETH 2,508.34  SOL 106.89  new=0
+22:10:06 UTC  poll  3  BTC 83,369.45  ETH 2,508.34  SOL 106.89  new=0
+22:10:26 UTC  429 rate limited, backing off 20s
+22:10:46 UTC  429 rate limited, backing off 40s
+22:11:26 UTC  poll  4  BTC 83,355.33  ETH 2,507.50  SOL 106.87  new=3
+22:11:46 UTC  poll  5  BTC 83,355.33  ETH 2,507.50  SOL 106.87  new=0
+22:12:06 UTC  poll  6  BTC 83,355.33  ETH 2,507.50  SOL 106.87  new=0
+22:12:26 UTC  poll  7  BTC 83,355.33  ETH 2,507.50  SOL 106.87  new=0
+22:12:46 UTC  429 rate limited, backing off 20s
+22:13:06 UTC  429 rate limited, backing off 40s
+22:13:46 UTC  poll  8  BTC 83,359.56  ETH 2,508.59  SOL 106.89  new=3
+done: 8 successful polls, 9 new ticks written to crypto_ticks
+
+$ python finance/ingest.py --seconds 420 --interval 30
+22:14:53 UTC  429 rate limited, backing off 30s
+22:15:23 UTC  poll  1  BTC 83,362.38  ETH 2,508.59  SOL 106.87  new=3
+22:15:53 UTC  poll  2  BTC 83,362.38  ETH 2,508.59  SOL 106.87  new=0
+22:16:23 UTC  poll  3  BTC 83,362.38  ETH 2,508.59  SOL 106.87  new=0
+22:16:53 UTC  poll  4  BTC 83,364.94  ETH 2,508.73  SOL 106.87  new=3
+22:17:23 UTC  429 rate limited, backing off 30s
+22:17:53 UTC  429 rate limited, backing off 60s
+22:18:53 UTC  429 rate limited, backing off 120s
+22:20:53 UTC  429 rate limited, backing off 120s
+done: 4 successful polls, 6 new ticks written to crypto_ticks
+
+$ python finance/query.py --minutes 20
+TimescaleDB 2.30.2 on Tiger Cloud (times in UTC)
+
+--- Hypertable
+ hypertable_name | num_dimensions | num_chunks | compression_enabled
+-----------------+----------------+------------+---------------------
+ crypto_ticks    | 1              | 1          | True               
+(1 row)
+
+--- Ticks per symbol
+  symbol | ticks |       first_tick       |       last_tick        | min_price | max_price
+---------+-------+------------------------+------------------------+-----------+-----------
+ BTC-USD | 5     | 2026-10-13 22:09:24+00 | 2026-10-13 22:16:48+00 | 83355.33  | 83369.45 
+ ETH-USD | 5     | 2026-10-13 22:09:24+00 | 2026-10-13 22:16:48+00 | 2507.50   | 2508.73  
+ SOL-USD | 5     | 2026-10-13 22:09:24+00 | 2026-10-13 22:16:48+00 | 106.87    | 106.89   
+(3 rows)
+
+--- 1-minute OHLC from the continuous aggregate crypto_ohlc_1m (last 20 min)
+         bucket         |  symbol |   open   |   high   |   low    |  close   | ticks
+------------------------+---------+----------+----------+----------+----------+-------
+ 2026-10-13 22:09:00+00 | BTC-USD | 83369.45 | 83369.45 | 83369.45 | 83369.45 | 1    
+ 2026-10-13 22:11:00+00 | BTC-USD | 83355.33 | 83355.33 | 83355.33 | 83355.33 | 1    
+ 2026-10-13 22:13:00+00 | BTC-USD | 83359.56 | 83359.56 | 83359.56 | 83359.56 | 1    
+ 2026-10-13 22:15:00+00 | BTC-USD | 83362.38 | 83362.38 | 83362.38 | 83362.38 | 1    
+ 2026-10-13 22:16:00+00 | BTC-USD | 83364.94 | 83364.94 | 83364.94 | 83364.94 | 1    
+ 2026-10-13 22:09:00+00 | ETH-USD | 2508.34  | 2508.34  | 2508.34  | 2508.34  | 1    
+ 2026-10-13 22:11:00+00 | ETH-USD | 2507.50  | 2507.50  | 2507.50  | 2507.50  | 1    
+ 2026-10-13 22:13:00+00 | ETH-USD | 2508.59  | 2508.59  | 2508.59  | 2508.59  | 1    
+ 2026-10-13 22:15:00+00 | ETH-USD | 2508.59  | 2508.59  | 2508.59  | 2508.59  | 1    
+ 2026-10-13 22:16:00+00 | ETH-USD | 2508.73  | 2508.73  | 2508.73  | 2508.73  | 1    
+ 2026-10-13 22:09:00+00 | SOL-USD | 106.89   | 106.89   | 106.89   | 106.89   | 1    
+ 2026-10-13 22:11:00+00 | SOL-USD | 106.87   | 106.87   | 106.87   | 106.87   | 1    
+ 2026-10-13 22:13:00+00 | SOL-USD | 106.89   | 106.89   | 106.89   | 106.89   | 1    
+ 2026-10-13 22:15:00+00 | SOL-USD | 106.87   | 106.87   | 106.87   | 106.87   | 1    
+ 2026-10-13 22:16:00+00 | SOL-USD | 106.87   | 106.87   | 106.87   | 106.87   | 1    
+(15 rows)
+
+--- Background refresh policy on crypto_ohlc_1m
+ job_id | schedule_interval | last_run_status | last_successful_finish | total_runs
+--------+-------------------+-----------------+------------------------+------------
+ 1009   | 0:01:00           | Success         | 2026-10-13 22:22:28+00 | 15        
+(1 row)

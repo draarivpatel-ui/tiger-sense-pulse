@@ -8,13 +8,14 @@
 
 *The generated `dashboard.html`, rendered with headless Chromium (Oct 2026).*
 
-A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)**. It covers three Tiger Data challenges in one repo:
+A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)**. It covers several Tiger Data challenges in one repo (the first three below; vector search, Tiger CLI + MCP and real-time financial data are Parts 2-4 further down):
 
 | GHW challenge | Where it lives |
 |---|---|
 | Set up a Tiger Cloud service and create your first **Hypertable** | `sql/01_schema.sql` |
 | **Simulate an IoT sensor dataset** with Tiger Cloud | `sql/02_simulate.sql` |
 | Accelerate Dashboards with **Continuous Aggregates** | `sql/03_continuous_aggregates.sql`, `dashboard.py` |
+| Ingest **real-time financial data** into Tiger Cloud (Part 4) | `finance/schema.sql`, `finance/ingest.py` |
 
 ## Judge it in 60 seconds
 
@@ -28,7 +29,7 @@ cd tiger-sense-pulse
 bash test.sh
 ```
 
-Expected output (42 of the 46 `... ok` lines trimmed; your time will differ):
+Expected output (56 of the 60 `... ok` lines trimmed; your time will differ):
 
 ```
 test_empty_database_still_writes_a_page (test_dashboard.DashboardPage.test_empty_database_still_writes_a_page) ... ok
@@ -38,7 +39,7 @@ test_strings_and_comments_are_terminated (test_sql_lint.SqlFileLint.test_strings
 test_vector_schema (test_sql_lint.SqlFileLint.test_vector_schema) ... ok
 
 ----------------------------------------------------------------------
-Ran 46 tests in 0.974s
+Ran 60 tests in 0.927s
 
 OK
 ```
@@ -108,7 +109,7 @@ The full pipeline on a live database is `DATABASE_URL=... ./run.sh` (see "Run it
 
 ## Data sources
 
-All data is **simulated** by `sql/02_simulate.sql` (sine-curve daily cycle plus random noise and two injected incidents). No real sensors or outside datasets are used.
+All data is **simulated** by `sql/02_simulate.sql` (sine-curve daily cycle plus random noise and two injected incidents). No real sensors or outside datasets are used. The one exception is Part 4 (`finance/`), which ingests live crypto prices from the CoinGecko Keyless Public API (data provided by CoinGecko, https://www.coingecko.com/en/api).
 
 ## Results from a test run
 
@@ -144,11 +145,12 @@ From `sample-output.txt` (local test, see "How it was tested" below):
 bash test.sh     # same as: python3 -m unittest discover -s tests -v
 ```
 
-46 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions (`.github/workflows/tests.yml`).
+60 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions (`.github/workflows/tests.yml`).
 
 - **SQL file lint** (`tests/test_sql_lint.py`, 15 tests): every `.sql` file is clean UTF-8 with a comment header, strings and comments are closed, parentheses balance, every statement ends with `;`, `\echo` appears only in `04_queries.sql`, `DROP`s only touch the four demo objects and use `IF EXISTS`, no passwords in connection strings, `run.sh` applies the four files in order with `ON_ERROR_STOP`, the README schema table matches the real `CREATE` columns, every `alias.column` in `04_queries.sql`, `dashboard.py` and `vector_search.py` exists, and the dashboard's anomaly query is identical to query 5.
 - **Generator unit tests** (`tests/test_generator.py`, 13 tests): reads the constants out of `sql/02_simulate.sql` and replays the simulation in Python with seeded noise. Checks 6 sensors × 2,017 timestamps = 12,102 rows, the daily peak at 20:00 UTC (3 PM US Central), plausible temperature and humidity ranges, that both incidents hit real sensors in non-overlapping windows, and that the anomaly finder flags **exactly** the 3 injected hours (greenhouse 2, server closet 1) with no false positives across 25 random seeds. Also checks the 30 notes in `vector/notes.py` (chronological, Oct 4–10, every sensor named and covered, incident clusters on Oct 7 and Oct 9).
 - **Dashboard generator** (`tests/test_dashboard.py`, 11 tests): `psycopg` is stubbed. Checks the SVG chart (one line per sensor, every point inside the viewBox, hotter is higher, no divide-by-zero, colors cycle, names escaped) and the written `dashboard.html` (summary and anomaly rows, "No anomalies found.", an empty database, HTML escaping, and that it only queries the continuous aggregates, never the raw hypertable).
+- **Finance feed** (`tests/test_finance.py`, 14 tests): parsing of the CoinGecko `/simple/price` response (exact `Decimal` prices, UTC timestamps, bad or missing rows skipped, 429 bodies raise), de-duplication of repeated updates, the 1 request/second floor and capped backoff, a keyless URL, and the shape of `finance/schema.sql` (hypertable keyed on `(symbol, time)`, 1-minute OHLC continuous aggregate with a refresh policy, no `DROP`).
 - **README consistency** (`tests/test_readme.py`, 7 tests): this README can't drift from the repo. The test counts above equal the real suite, every path in "Files" and every backticked file name exists, relative links resolve, the anomaly table quoted in step 2 is byte-for-byte the block in `sample-output.txt`, and the replay output quoted in step 2 is what the generator actually prints.
 
 The tests check the files and the generator logic, not a live database. The end-to-end test is still running the whole pipeline:
@@ -186,6 +188,16 @@ Run it: `pip install psycopg[binary] fastembed` then `DATABASE_URL=... python ve
 
 The Tiger CLI (v0.26.0) was installed, authenticated with `tiger auth login --headless` (device code approved in the Tiger Console), and `tiger service list` shows the `mlh-hackweek` service. `mcp/mcp_client.py` launches `tiger mcp start` over stdio and lets an AI agent (Hark, the assistant that built this repo) list the 19 Tiger MCP tools and call `service_list` and `db_query` against the live service. Transcript: `mcp/sample-transcript.txt`.
 
+## Part 4 (Oct 13): real-time financial data
+
+`finance/` ingests live crypto prices into the same Tiger Cloud service. The GHW guide uses Twelve Data, which needs an account and API key; this version uses the **CoinGecko Keyless Public API** instead (no key, no sign-up), so no new account was created.
+
+- `finance/schema.sql` creates the `crypto_ticks` **hypertable** (`time`, `symbol`, `price`, `volume_24h_usd`, keyed on `(symbol, time)`) and the `crypto_ohlc_1m` **real-time continuous aggregate** (1-minute open/high/low/close plus tick count) with a refresh policy that runs every minute.
+- `finance/ingest.py` polls BTC, ETH and SOL in one request every 20 s (well under 1 request/second), backs off on HTTP 429, skips repeats of the same price update, and inserts with `ON CONFLICT DO NOTHING`. The parsing lives in `finance/feed.py` (standard library only, unit-tested).
+- `finance/query.py` prints the hypertable, ticks per symbol, the candles and the refresh job. Real output from the live run is in `finance/sample-output.txt`.
+
+Details and limits: [finance/README.md](finance/README.md). Data provided by CoinGecko (https://www.coingecko.com/en/api).
+
 ## Built with AI assistance
 
 Honest disclosure: this project was built with AI assistance. An AI assistant (Hark) wrote the SQL, the Python dashboard and this README and ran the local tests on behalf of Aariv Patel (GitHub: draarivpatel-ui) for his GHW Hacktoberfest participation. The schema and queries follow Tiger Data's tutorials:
@@ -209,6 +221,7 @@ test.sh                           runs the offline test suite (tests/)
 tests/                            SQL lint, generator, dashboard and README-consistency tests (standard library only)
 vector/                           Part 2: pgvector + pgvectorscale semantic search over maintenance notes
 mcp/                              Part 3: Tiger CLI + MCP client
+finance/                          Part 4: real-time crypto prices -> hypertable + 1-minute OHLC continuous aggregate
 ```
 
 License: MIT

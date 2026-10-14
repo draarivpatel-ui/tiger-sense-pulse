@@ -1,6 +1,7 @@
 """Unit tests for dashboard.py, the static HTML generator. psycopg is stubbed, so no database or pip install is needed."""
 import contextlib
 import io
+import math
 import os
 import re
 import sys
@@ -115,6 +116,18 @@ class SvgChart(unittest.TestCase):
         strokes = re.findall(r'<polyline fill="none" stroke="(#[0-9a-f]{6})"', svg)
         self.assertEqual(strokes[-1], strokes[0])
 
+    def test_naive_datetimes_give_finite_coordinates(self):
+        naive = [(datetime(2026, 10, 3, h, 0), 20.0 + h) for h in range(4)]  # no tzinfo: timestamp() uses local tz
+        svg = dashboard.svg_chart({"s": naive})
+        self.assertNotIn("nan", svg.lower())
+        self.assertNotIn("inf", svg.lower())
+        coords = [tuple(map(float, p.split(","))) for p in re.search(r'points="([^"]+)"', svg).group(1).split()]
+        self.assertEqual(len(coords), 4)
+        for x, y in coords:
+            self.assertTrue(math.isfinite(x) and math.isfinite(y), (x, y))
+            self.assertTrue(dashboard.PAD - 0.05 <= x <= dashboard.W - dashboard.PAD + 0.05, x)
+        self.assertEqual([c[0] for c in coords], sorted(c[0] for c in coords))
+
     def test_gridline_labels_span_the_data(self):
         svg = dashboard.svg_chart({"a": [(T0, 18.0), (T0 + timedelta(hours=1), 42.0)]})
         labels = [int(v) for v in re.findall(r">(-?\d+)°</text>", svg)]
@@ -150,6 +163,13 @@ class DashboardPage(unittest.TestCase):
         self.assertIn("Server &lt;closet&gt;", page)
         self.assertNotIn("Server <closet>", page)
 
+    def test_sensor_name_with_html_is_escaped_in_both_tables(self):
+        summary = [("<b>s1</b>", "lab", Decimal("21.0"), Decimal("20.0"), Decimal("22.0"), 10)]
+        anomalies = [("<b>s1</b>", datetime(2026, 10, 7, 19, 0, tzinfo=timezone.utc), Decimal("30.0"), Decimal("5.0"))]
+        page, _ = render([], summary, anomalies)
+        self.assertEqual(page.count("<td>&lt;b&gt;s1&lt;/b&gt;</td>"), 2)
+        self.assertNotIn("<b>s1</b>", page)
+
     def test_no_anomalies_message(self):
         page, _ = render(self.HOURLY, self.SUMMARY, [])
         self.assertIn('<td colspan="4">No anomalies found.</td>', page)
@@ -157,6 +177,7 @@ class DashboardPage(unittest.TestCase):
     def test_empty_database_still_writes_a_page(self):
         page, _ = render([], [], [])
         self.assertIn("No data yet. Run run.sh first.", page)
+        self.assertIn('<td colspan="4">No anomalies found.</td>', page)
         self.assertIn("</html>", page)
 
 

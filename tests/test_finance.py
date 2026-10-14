@@ -1,7 +1,10 @@
 """finance/: parsing, de-duplication and pacing of the keyless CoinGecko feed, plus the schema file (no network, no database)."""
+import io
 import json
 import sys
 import unittest
+import urllib.error
+from unittest import mock
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -88,6 +91,85 @@ class DedupeAndPacing(unittest.TestCase):
         for part in ["ids=bitcoin,ethereum,solana", "vs_currencies=usd", "include_last_updated_at=true", "include_24hr_vol=true"]:
             self.assertIn(part, url)
         self.assertNotIn("key", url.lower())
+
+
+def _http_error(code):
+    return urllib.error.HTTPError(feed.BASE_URL, code, "error", {}, io.BytesIO(b""))
+
+
+def _raiser(exc):
+    def fetcher(url):
+        raise exc
+    return fetcher
+
+
+class BlockedAndRateLimitedFallback(unittest.TestCase):
+    """HTTP 403 (bot block) and 429 (rate limit) fall back to the last good prices with a visible note."""
+
+    def test_fetch_maps_http_403_to_blocked(self):
+        with mock.patch.object(feed.urllib.request, "urlopen", side_effect=_http_error(403)):
+            with self.assertRaises(feed.Blocked):
+                feed.fetch(feed.build_url(list(feed.COINS)))
+
+    def test_fetch_maps_http_429_to_rate_limited(self):
+        with mock.patch.object(feed.urllib.request, "urlopen", side_effect=_http_error(429)):
+            with self.assertRaises(feed.RateLimited):
+                feed.fetch(feed.build_url(list(feed.COINS)))
+
+    def test_other_http_errors_still_propagate(self):
+        with mock.patch.object(feed.urllib.request, "urlopen", side_effect=_http_error(500)):
+            with self.assertRaises(urllib.error.HTTPError):
+                feed.fetch(feed.build_url(list(feed.COINS)))
+        with self.assertRaises(urllib.error.HTTPError):
+            feed.poll("u", {}, fetcher=_raiser(_http_error(500)))
+
+    def test_live_poll_returns_ticks_and_remembers_them(self):
+        cache = {}
+        r = feed.poll("u", cache, fetcher=lambda url: SAMPLE)
+        self.assertTrue(r.live)
+        self.assertEqual((r.status, r.note), (200, None))
+        self.assertEqual(sorted(cache), ["BTC-USD", "ETH-USD", "SOL-USD"])
+        self.assertEqual(cache["BTC-USD"]["price"], Decimal("83380.23728352188"))
+
+    def _check_fallback(self, fetcher, status):
+        cache = {}
+        feed.poll("u", cache, fetcher=lambda url: SAMPLE)
+        r = feed.poll("u", cache, fetcher=fetcher)
+        self.assertFalse(r.live)
+        self.assertEqual(r.status, status)
+        self.assertEqual([t["symbol"] for t in r.ticks], ["BTC-USD", "ETH-USD", "SOL-USD"])
+        self.assertEqual(r.ticks, feed.parse_simple_price(SAMPLE))  # the real earlier update, unchanged
+        self.assertTrue(r.note.startswith("live prices unavailable (HTTP %d" % status), r.note)
+        self.assertIn("showing last good prices from 22:06:24 UTC", r.note)
+        # A fallback is not new data: de-duplication writes none of it again.
+        seen = {t["symbol"]: t["time"] for t in r.ticks}
+        self.assertEqual(feed.new_ticks(r.ticks, seen), [])
+
+    def test_http_403_falls_back_to_last_good_prices(self):
+        self._check_fallback(_raiser(feed.Blocked("HTTP 403")), 403)
+
+    def test_http_429_falls_back_to_last_good_prices(self):
+        self._check_fallback(_raiser(feed.RateLimited("HTTP 429")), 429)
+        body = {"status": {"error_code": 429, "error_message": "You've exceeded the Rate Limit."}}
+        self._check_fallback(lambda url: body, 429)
+
+    def test_block_before_any_live_poll_says_no_cached_prices(self):
+        for exc, code in [(feed.Blocked("HTTP 403"), 403), (feed.RateLimited("HTTP 429"), 429)]:
+            with self.subTest(code=code):
+                r = feed.poll("u", {}, fetcher=_raiser(exc))
+                self.assertEqual((r.ticks, r.live, r.status), ([], False, code))
+                self.assertEqual(r.note, "live prices unavailable (HTTP %d, %s by CoinGecko); no cached prices yet"
+                                 % (code, "request blocked" if code == 403 else "rate limited"))
+
+    def test_ingester_only_writes_live_polls_and_prints_the_note(self):
+        ingest = read(ROOT / "finance" / "ingest.py")
+        self.assertIn("result = feed.poll(url, last_good)", ingest)
+        self.assertIn("if result.live:", ingest)
+        live_branch = ingest.split("if result.live:", 1)[1].split("else:", 1)[0]
+        self.assertIn("cur.execute(INSERT", live_branch)
+        fallback = ingest.split("if result.live:", 1)[1].split("else:", 1)[1].split("sleep_for", 1)[0]
+        self.assertNotIn("INSERT", fallback)
+        self.assertIn("result.note", fallback)
 
 
 class FinanceSchema(unittest.TestCase):

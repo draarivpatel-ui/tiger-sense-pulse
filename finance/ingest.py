@@ -40,30 +40,36 @@ def main(argv=None):
 
     # Resume where an earlier run stopped, so restarts never re-count stored updates.
     last_seen = dict(conn.execute("SELECT symbol, max(time) FROM crypto_ticks GROUP BY symbol").fetchall())
-    inserted, polls, limited = 0, 0, 0
+    # Last good prices to show (never re-insert) if the feed answers 403 or 429 before the first live poll.
+    last_good = {sym: {"time": t, "symbol": sym, "price": p, "volume_24h_usd": v} for sym, t, p, v in conn.execute(
+        "SELECT DISTINCT ON (symbol) symbol, time, price, volume_24h_usd FROM crypto_ticks "
+        "ORDER BY symbol, time DESC").fetchall()}
+    inserted, polls, failed = 0, 0, 0
     deadline = None if args.seconds <= 0 else time.monotonic() + args.seconds
     try:
         while deadline is None or time.monotonic() < deadline:
             started = time.monotonic()
             now = datetime.now(timezone.utc).strftime("%H:%M:%S")
             wait = interval
-            try:
-                ticks = feed.parse_simple_price(feed.fetch(url))
+            result = feed.poll(url, last_good)
+            prices = "  ".join("%s %s" % (t["symbol"].split("-")[0], f"{t['price']:,.2f}") for t in result.ticks)
+            if result.live:
                 polls += 1
-                limited = 0
-                fresh = feed.new_ticks(ticks, last_seen)
+                failed = 0
+                fresh = feed.new_ticks(result.ticks, last_seen)
                 written = 0
                 with conn.cursor() as cur:
                     for t in fresh:
                         cur.execute(INSERT, (t["time"], t["symbol"], t["price"], t["volume_24h_usd"]))
                         written += cur.rowcount  # 0 when the row was already stored
                 inserted += written
-                prices = "  ".join("%s %s" % (t["symbol"].split("-")[0], f"{t['price']:,.2f}") for t in ticks)
                 print(f"{now} UTC  poll {polls:>2}  {prices}  new={written}", flush=True)
-            except feed.RateLimited:
-                limited += 1
-                wait = feed.backoff_seconds(limited, interval)
-                print(f"{now} UTC  429 rate limited, backing off {wait:.0f}s", flush=True)
+            else:
+                # 403 blocked or 429 rate limited: nothing is written; show the cached prices and back off.
+                failed += 1
+                wait = feed.backoff_seconds(failed, interval)
+                print(f"{now} UTC  {result.note}; backing off {wait:.0f}s" + (f"  [{prices}]" if prices else ""),
+                      flush=True)
             sleep_for = wait - (time.monotonic() - started)
             if deadline is not None:
                 sleep_for = min(sleep_for, deadline - time.monotonic())

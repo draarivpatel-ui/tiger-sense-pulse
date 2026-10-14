@@ -4,6 +4,7 @@ Feed: GET https://api.coingecko.com/api/v3/simple/price  (CoinGecko Keyless Publ
 Data provided by CoinGecko: https://www.coingecko.com/en/api
 """
 import json
+from collections import namedtuple
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -29,6 +30,16 @@ class RateLimited(Exception):
 
 class FeedError(Exception):
     """The feed answered with an error body we cannot use."""
+
+
+class Blocked(Exception):
+    """The feed answered HTTP 403 (CoinGecko can bot-block scripted clients)."""
+
+
+UNAVAILABLE = "live prices unavailable"
+
+# One poll's outcome: ticks to show, whether they are live, the HTTP-ish status (200/403/429) and a note.
+PollResult = namedtuple("PollResult", "ticks live status note")
 
 
 def build_url(coin_ids):
@@ -118,4 +129,37 @@ def fetch(url, timeout=15):
     except urllib.error.HTTPError as e:
         if e.code == 429:
             raise RateLimited("HTTP 429")
+        if e.code == 403:
+            raise Blocked("HTTP 403")
         raise
+
+
+def poll(url, last_good, fetcher=fetch):
+    """One request with a fallback for HTTP 403 (blocked) and 429 (rate limited).
+
+    last_good maps symbol -> the newest live tick seen; it is updated in place on success.
+    On success: PollResult(fresh ticks, live=True, status=200, note=None).
+    On 403/429 (HTTP status or a 429 error body): PollResult(last good ticks sorted by symbol, live=False,
+    status, note) where note starts with "live prices unavailable" and says which prices are shown instead.
+    Fallback ticks are copies of real earlier updates, never new data: callers must not store them again.
+    Other errors propagate unchanged.
+    """
+    try:
+        ticks = parse_simple_price(fetcher(url))
+    except Blocked:
+        status, why = 403, "HTTP 403, request blocked by CoinGecko"
+    except RateLimited:
+        status, why = 429, "HTTP 429, rate limited by CoinGecko"
+    else:
+        for t in ticks:
+            prev = last_good.get(t["symbol"])
+            if prev is None or t["time"] >= prev["time"]:
+                last_good[t["symbol"]] = t
+        return PollResult(ticks, True, 200, None)
+    cached = sorted(last_good.values(), key=lambda t: t["symbol"])
+    if cached:
+        newest = max(t["time"] for t in cached).strftime("%H:%M:%S UTC")
+        shown = "showing last good prices from %s" % newest
+    else:
+        shown = "no cached prices yet"
+    return PollResult(cached, False, status, "%s (%s); %s" % (UNAVAILABLE, why, shown))

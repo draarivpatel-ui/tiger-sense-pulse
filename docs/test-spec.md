@@ -16,3 +16,14 @@ Observed by calling `svg_chart` directly in Python (psycopg stubbed), 2026-10-13
 | D10 | session time zone vs the anomaly 'typical hour' | ANOMALY_SQL (= sql/04_queries.sql query 5) groups and joins on `extract(hour FROM bucket)`; `bucket` is timestamptz, so the hour label follows the DB session `TimeZone`. In a non-UTC session whose zone changes DST inside the 7-day window, one local hour covers two UTC hours (e.g. America/Chicago, now = 2026-11-04 23:00Z: local 15 = UTC 20 and 21), so the median mixes neighbouring hours | documented 2026-10-14, no code change. Offline replay of the generator's simulation (tests/test_generator.py `simulate()`, 25 seeds per case) in America/Chicago, Asia/Kolkata and Europe/London, with and without a US fall-back inside the window: flagged hours identical to a UTC session in every case (0 differences), because the injected incidents (+9/+12 °C) sit far above the 4 °C threshold. Real data near the threshold in a DST week could gain or lose a flag. If ever fixed: use `extract(hour FROM bucket AT TIME ZONE 'UTC')` in both query 5 and ANOMALY_SQL together (test_sql_lint requires them identical), or `SET TIME ZONE 'UTC'` on the dashboard connection. Display side already safe (D9) |
 
 All three proposed tests (D3, D4, D9) are now in tests/test_dashboard.py. Every row D1–D9 now names its test (D10 is a documented limitation, not a test) (2026-10-14: +D5 and D7-tables tests, D8 assertion added; suite 70 tests, dashboard 17; +D9 naive-bucket test: suite 71, dashboard 18).
+
+## finance/feed.py: HTTP 403 and 429 (added 2026-10-14)
+
+| # | Input | Before | Now |
+|---|-------|--------|-----|
+| F1 | CoinGecko answers HTTP 403 (bot block; `curl` got 403 from coingecko.com on 2026-10-14) | `fetch` re-raised `HTTPError`, so `ingest.py` stopped with a traceback | `fetch` raises `Blocked`; `poll` returns the last good prices, `live=False`, note "live prices unavailable (HTTP 403, request blocked by CoinGecko); showing last good prices from HH:MM:SS UTC"; `ingest.py` prints it, writes nothing, backs off. Covered by test_fetch_maps_http_403_to_blocked + test_http_403_falls_back_to_last_good_prices |
+| F2 | HTTP 429 or a 429 error body | `ingest.py` backed off but printed no prices | same fallback and note with "HTTP 429, rate limited". Covered by test_fetch_maps_http_429_to_rate_limited + test_http_429_falls_back_to_last_good_prices |
+| F3 | 403/429 before any live poll and an empty table | n/a | empty tick list, note ends "no cached prices yet". Covered by test_block_before_any_live_poll_says_no_cached_prices |
+| F4 | other HTTP errors (e.g. 500) | raised | still raised (unchanged). Covered by test_other_http_errors_still_propagate |
+
+Fallback ticks are earlier real updates, never new or sample data; test_ingester_only_writes_live_polls_and_prints_the_note pins that only live polls reach the `INSERT`.

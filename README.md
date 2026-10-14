@@ -128,9 +128,10 @@ From `sample-output.txt` (local test, see "How it was tested" below):
    export DATABASE_URL="postgres://tsdbadmin:<password>@<host>:<port>/tsdb?sslmode=require"
    ./run.sh
    ```
-3. Build the dashboard:
+3. Build the dashboard (`dashboard.py` reads `DATABASE_URL` too; if you used the Console editor in step 2, export it first, or the script stops with `KeyError: 'DATABASE_URL'`):
 
    ```bash
+   export DATABASE_URL="postgres://tsdbadmin:<password>@<host>:<port>/tsdb?sslmode=require"   # skip if already set in step 2
    pip install -r requirements.txt
    python dashboard.py      # writes dashboard.html
    ```
@@ -183,7 +184,7 @@ Note: `sample-output.txt` shows times in UTC.
 
 Real output from Tiger Cloud is in `vector/sample-output.txt`. For example, "the air conditioning broke and the room overheated" returns the two server-closet AC notes from Oct 9 first (similarity 0.764 and 0.757), and the query plan shows the diskann index being used on each chunk.
 
-Run it: `pip install psycopg[binary] fastembed` then `DATABASE_URL=... python vector/vector_search.py --load`
+Run it: `pip install "psycopg[binary]" fastembed` (quoted so zsh doesn't treat the brackets as a glob) then `DATABASE_URL=... python vector/vector_search.py --load`
 
 ## Part 3 (Oct 11): Tiger CLI + MCP with an AI agent
 

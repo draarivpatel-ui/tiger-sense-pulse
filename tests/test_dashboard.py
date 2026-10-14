@@ -63,6 +63,15 @@ class SvgChart(unittest.TestCase):
         page, _ = render([], [], [("s", b, Decimal("40.1"), Decimal("3.2"))])
         self.assertIn("Sun Oct 04, 01:00 UTC", page)
 
+    def test_naive_anomaly_hour_is_assumed_utc_and_schema_keeps_buckets_tz_aware(self):
+        # sensor_data.time is TIMESTAMPTZ, so time_bucket() buckets are timestamptz and psycopg returns aware
+        # datetimes; a naive bucket can only appear if the schema changes. Pin both: the column type, and that
+        # a naive bucket is printed unchanged (assumed UTC) rather than shifted by the machine's local zone.
+        schema = (ROOT / "sql" / "01_schema.sql").read_text(encoding="utf-8")
+        self.assertRegex(schema, r"\n\s*time\s+TIMESTAMPTZ\s+NOT NULL")
+        page, _ = render([], [], [("s", datetime(2026, 10, 3, 20, 0), Decimal("40.1"), Decimal("3.2"))])
+        self.assertIn("Sat Oct 03, 20:00 UTC", page)
+
     def test_flat_line_and_single_timestamp_give_finite_coordinates(self):
         flat = dashboard.svg_chart({"s": [(T0 + timedelta(hours=h), 21.0) for h in range(6)]})
         single = dashboard.svg_chart({"s": [(T0, 21.0)]})

@@ -193,7 +193,7 @@
           </tr>
           <tr>
             <th scope="row">Part 4: real-time financial data</th>
-            <td>BTC, ETH and SOL prices from the CoinGecko Keyless Public API (no key, no sign-up) land in the <code>crypto_ticks</code> hypertable, polled in one request every 20&nbsp;s with backoff on HTTP 429 and duplicate updates skipped. The <code>crypto_ohlc_1m</code> real-time continuous aggregate rolls them into 1-minute open/high/low/close candles with a refresh policy that runs every minute. Limit: the keyless price changed about once every 1 to 2 minutes, so it is near-real-time, not tick-by-tick, and the live run was short.</td>
+            <td>BTC, ETH and SOL prices from the CoinGecko Keyless Public API (no key, no sign-up) land in the <code>crypto_ticks</code> hypertable, polled in one request every 20&nbsp;s with backoff on HTTP 429 (rate limit) and HTTP 403 (bot block), when the last good prices are shown with a &ldquo;live prices unavailable&rdquo; note and never re-inserted, and duplicate updates skipped. The <code>crypto_ohlc_1m</code> real-time continuous aggregate rolls them into 1-minute open/high/low/close candles with a refresh policy that runs every minute. Limit: the keyless price changed about once every 1 to 2 minutes, so it is near-real-time, not tick-by-tick, and the live run was short.</td>
             <td>
               <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/tree/main/finance">finance/</a>
               (<a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/finance/README.md">details and limits</a>)

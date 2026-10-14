@@ -56,6 +56,14 @@ class SvgChart(unittest.TestCase):
         self.assertIn("No data yet", dashboard.svg_chart({}))
         self.assertIn("No data yet", dashboard.svg_chart({"lab-1": []}))
 
+    def test_flat_line_and_single_timestamp_give_finite_coordinates(self):
+        flat = dashboard.svg_chart({"s": [(T0 + timedelta(hours=h), 21.0) for h in range(6)]})
+        single = dashboard.svg_chart({"s": [(T0, 21.0)]})
+        for svg in (flat, single):
+            self.assertNotIn("nan", svg.lower())
+            self.assertNotIn("inf", svg.lower())
+            self.assertEqual(svg.count("<polyline"), 1)
+
     def test_one_polyline_per_sensor_and_points_inside_the_viewbox(self):
         series = {f"s{i}": [(T0 + timedelta(hours=h), 20 + i + (h % 5)) for h in range(48)] for i in range(3)}
         svg = dashboard.svg_chart(series)

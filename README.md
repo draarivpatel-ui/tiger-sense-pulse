@@ -1,6 +1,6 @@
 # Sensor Pulse: simulated school IoT sensors on Tiger Cloud (TimescaleDB)
 
-**Live link:** https://github.com/draarivpatel-ui/tiger-sense-pulse (no hosted web app: this is a database project. It runs on your own Tiger Cloud service with `./run.sh`, and `dashboard.html` is a static page it generates.)
+**Live link:** https://github.com/draarivpatel-ui/tiger-sense-pulse (no hosted web app: this is a database project. It runs on your own Tiger Cloud service with `./run.sh`, and `dashboard.html` is a static page it generates. The copy generated from the local test is also served by GitHub Pages: [aariv.me/tiger-sense-pulse/dashboard.html](https://aariv.me/tiger-sense-pulse/dashboard.html), with a one-page project summary at [aariv.me/tiger-sense-pulse/docs/](https://aariv.me/tiger-sense-pulse/docs/).)
 
 **One line:** six simulated school sensors stream into a TimescaleDB hypertable on Tiger Cloud, continuous aggregates roll them up hourly and daily, and an anomaly query catches the two incidents hidden in the data.
 
@@ -19,7 +19,7 @@ A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)
 
 ## Judge it in 60 seconds
 
-No database, no `pip install`, no network: just `git` and Python 3.9+. Everything below was copied from real runs (Python 3.12, Oct 11–12, 2026).
+No database, no `pip install`, no network: just `git` and Python 3.9+. Everything below was copied from real runs (Python 3.12, Oct 11–14, 2026).
 
 **1. Get the code and run the tests (~2 s):**
 

@@ -1,6 +1,6 @@
 # Sensor Pulse: simulated school IoT sensors on Tiger Cloud (TimescaleDB)
 
-**Live link:** https://github.com/draarivpatel-ui/tiger-sense-pulse (no hosted web app: this is a database project. It runs on your own Tiger Cloud service with `./run.sh`, and `dashboard.html` is a static page it generates.) A static GitHub Pages overview of the repo is at https://aariv.me/tiger-sense-pulse/docs/ and the generated dashboard at https://aariv.me/tiger-sense-pulse/dashboard.html; neither connects to a database.
+**Live link:** https://github.com/draarivpatel-ui/tiger-sense-pulse (no hosted web app: this is a database project. It runs on your own Tiger Cloud service with `./run.sh`, and `dashboard.html` is a static page it generates.)
 
 **One line:** six simulated school sensors stream into a TimescaleDB hypertable on Tiger Cloud, continuous aggregates roll them up hourly and daily, and an anomaly query catches the two incidents hidden in the data.
 
@@ -8,7 +8,7 @@
 
 *The generated `dashboard.html`, rendered with headless Chromium (Oct 2026).*
 
-A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)**. It covers several Tiger Data challenges in one repo (the table maps the core three plus Part 4; vector search and Tiger CLI + MCP are Parts 2 and 3 further down):
+A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)**. It covers several Tiger Data challenges in one repo (the first three below; vector search, Tiger CLI + MCP and real-time financial data are Parts 2-4 further down):
 
 | GHW challenge | Where it lives |
 |---|---|
@@ -29,7 +29,7 @@ cd tiger-sense-pulse
 bash test.sh
 ```
 
-Expected output (60 of the 64 `... ok` lines trimmed; your time will differ):
+Expected output (56 of the 60 `... ok` lines trimmed; your time will differ):
 
 ```
 test_empty_database_still_writes_a_page (test_dashboard.DashboardPage.test_empty_database_still_writes_a_page) ... ok
@@ -39,7 +39,7 @@ test_strings_and_comments_are_terminated (test_sql_lint.SqlFileLint.test_strings
 test_vector_schema (test_sql_lint.SqlFileLint.test_vector_schema) ... ok
 
 ----------------------------------------------------------------------
-Ran 64 tests in 0.927s
+Ran 60 tests in 0.927s
 
 OK
 ```
@@ -145,13 +145,12 @@ From `sample-output.txt` (local test, see "How it was tested" below):
 bash test.sh     # same as: python3 -m unittest discover -s tests -v
 ```
 
-64 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions (`.github/workflows/tests.yml`).
+60 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions (`.github/workflows/tests.yml`).
 
 - **SQL file lint** (`tests/test_sql_lint.py`, 15 tests): every `.sql` file is clean UTF-8 with a comment header, strings and comments are closed, parentheses balance, every statement ends with `;`, `\echo` appears only in `04_queries.sql`, `DROP`s only touch the four demo objects and use `IF EXISTS`, no passwords in connection strings, `run.sh` applies the four files in order with `ON_ERROR_STOP`, the README schema table matches the real `CREATE` columns, every `alias.column` in `04_queries.sql`, `dashboard.py` and `vector_search.py` exists, and the dashboard's anomaly query is identical to query 5.
 - **Generator unit tests** (`tests/test_generator.py`, 13 tests): reads the constants out of `sql/02_simulate.sql` and replays the simulation in Python with seeded noise. Checks 6 sensors × 2,017 timestamps = 12,102 rows, the daily peak at 20:00 UTC (3 PM US Central), plausible temperature and humidity ranges, that both incidents hit real sensors in non-overlapping windows, and that the anomaly finder flags **exactly** the 3 injected hours (greenhouse 2, server closet 1) with no false positives across 25 random seeds. Also checks the 30 notes in `vector/notes.py` (chronological, Oct 4–10, every sensor named and covered, incident clusters on Oct 7 and Oct 9).
 - **Dashboard generator** (`tests/test_dashboard.py`, 11 tests): `psycopg` is stubbed. Checks the SVG chart (one line per sensor, every point inside the viewBox, hotter is higher, no divide-by-zero, colors cycle, names escaped) and the written `dashboard.html` (summary and anomaly rows, "No anomalies found.", an empty database, HTML escaping, and that it only queries the continuous aggregates, never the raw hypertable).
 - **Finance feed** (`tests/test_finance.py`, 14 tests): parsing of the CoinGecko `/simple/price` response (exact `Decimal` prices, UTC timestamps, bad or missing rows skipped, 429 bodies raise), de-duplication of repeated updates, the 1 request/second floor and capped backoff, a keyless URL, and the shape of `finance/schema.sql` (hypertable keyed on `(symbol, time)`, 1-minute OHLC continuous aggregate with a refresh policy, no `DROP`).
-- **Finance query helpers** (`tests/test_finance_query.py`, 4 tests): imports `finance/query.py` without requiring `psycopg`, checks `fmt(v)` for `None`, `Decimal`, `float`, `int` and `str`, and verifies `table(cols, rows)` header/row alignment plus empty-row output.
 - **README consistency** (`tests/test_readme.py`, 7 tests): this README can't drift from the repo. The test counts above equal the real suite, every path in "Files" and every backticked file name exists, relative links resolve, the anomaly table quoted in step 2 is byte-for-byte the block in `sample-output.txt`, and the replay output quoted in step 2 is what the generator actually prints.
 
 The tests check the files and the generator logic, not a live database. The end-to-end test is still running the whole pipeline:
@@ -181,15 +180,13 @@ Note: `sample-output.txt` shows times in UTC.
 - `vector/notes.py` holds 30 synthetic notes (Oct 4-10, 2026), each tagged with its sensor's name; the loader looks the sensor id up by name, so the notes attach to the right sensor on any fresh database. Two clusters line up with the incidents injected into the sensor data (greenhouse vent shut, server-closet AC failure).
 - `vector/vector_search.py` embeds the notes locally with fastembed (`BAAI/bge-small-en-v1.5`, no API key), loads them, and runs similarity search combined with a **time filter**, a **metadata filter** (sensor type), and a join to the `sensor_hourly` continuous aggregate so each hit shows that hour's peak temperature.
 
-Real output from Tiger Cloud is in `vector/sample-output.txt`. Limits: the 30 notes are synthetic and written for this demo, and 30 rows is far too few to show DiskANN's speed; the run shows the index being used, not a benchmark. For example, "the air conditioning broke and the room overheated" returns the two server-closet AC notes from Oct 9 first (similarity 0.764 and 0.757), and the query plan shows the diskann index being used on each chunk.
+Real output from Tiger Cloud is in `vector/sample-output.txt`. For example, "the air conditioning broke and the room overheated" returns the two server-closet AC notes from Oct 9 first (similarity 0.764 and 0.757), and the query plan shows the diskann index being used on each chunk.
 
 Run it: `pip install psycopg[binary] fastembed` then `DATABASE_URL=... python vector/vector_search.py --load`
 
 ## Part 3 (Oct 11): Tiger CLI + MCP with an AI agent
 
 The Tiger CLI (v0.26.0) was installed, authenticated with `tiger auth login --headless` (device code approved in the Tiger Console), and `tiger service list` shows the `mlh-hackweek` service. `mcp/mcp_client.py` launches `tiger mcp start` over stdio and lets an AI agent (Hark, the assistant that built this repo) list the 19 Tiger MCP tools and call `service_list` and `db_query` against the live service. Transcript: `mcp/sample-transcript.txt`.
-
-Run it: install the Tiger CLI, run `tiger auth login`, `pip install mcp`, then `python mcp/mcp_client.py '[["service_list", {}]]'` (the argument is a JSON list of `[tool, arguments]` pairs; with no argument it only lists the tools). Limits: the script looks for the CLI at `~/bin/tiger` (edit `TIGER` at the top if yours is elsewhere), it is a one-shot client that calls the tools you pass rather than a chat loop, and the transcript is one short session.
 
 ## Part 4 (Oct 13): real-time financial data
 
@@ -203,7 +200,7 @@ Details and limits: [finance/README.md](finance/README.md). Data provided by Coi
 
 ## Built with AI assistance
 
-Honest disclosure: this project was built with AI assistance. An AI assistant (Hark) wrote the SQL, the Python dashboard and this README and ran the local tests on behalf of Aariv Patel (GitHub: draarivpatel-ui) for his GHW Hacktoberfest participation. The GitHub Copilot coding agent wrote two pull requests: the GitHub Pages landing page `docs/index.html` (#2) and the offline tests in `tests/test_finance_query.py` (#4). The schema and queries follow Tiger Data's tutorials:
+Honest disclosure: this project was built with AI assistance. An AI assistant (Hark) wrote the SQL, the Python dashboard and this README and ran the local tests on behalf of Aariv Patel (GitHub: draarivpatel-ui) for his GHW Hacktoberfest participation. The schema and queries follow Tiger Data's tutorials:
 - [Your first hypertable](https://www.tigerdata.com/docs/build/how-to/your-first-hypertable)
 - [Simulate an IoT sensor dataset](https://www.tigerdata.com/docs/build/examples/simulate-iot-sensor-data)
 - [Continuous aggregates](https://www.tigerdata.com/docs/learn/continuous-aggregates)
@@ -226,18 +223,5 @@ vector/                           Part 2: pgvector + pgvectorscale semantic sear
 mcp/                              Part 3: Tiger CLI + MCP client
 finance/                          Part 4: real-time crypto prices -> hypertable + 1-minute OHLC continuous aggregate
 ```
-
-## Third-party licences
-
-Nothing third-party is vendored in this repo; the libraries below are installed by whoever runs it. Checked Oct 13, 2026:
-
-| What | Used for | Licence | Source |
-|---|---|---|---|
-| psycopg 3 (`psycopg[binary]`) | Postgres driver for every script | LGPL-3.0 | https://github.com/psycopg/psycopg |
-| fastembed | local embeddings in Part 2 | Apache-2.0 | https://github.com/qdrant/fastembed |
-| BAAI/bge-small-en-v1.5 | embedding model fastembed downloads at run time (Part 2) | MIT | https://huggingface.co/BAAI/bge-small-en-v1.5 |
-| CoinGecko Keyless Public API | live crypto prices in Part 4 | CoinGecko API terms: credit CoinGecko with the words "Powered by CoinGecko" | https://www.coingecko.com/en/api_terms |
-
-Powered by CoinGecko. All other data in this repo is simulated.
 
 License: MIT

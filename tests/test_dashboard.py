@@ -56,6 +56,12 @@ class SvgChart(unittest.TestCase):
         self.assertIn("No data yet", dashboard.svg_chart({}))
         self.assertIn("No data yet", dashboard.svg_chart({"lab-1": []}))
 
+    def test_anomaly_hour_is_printed_in_utc_even_if_session_tz_differs(self):
+        cdt = timezone(timedelta(hours=-5))
+        b = datetime(2026, 10, 3, 20, 0, tzinfo=cdt)  # 01:00 UTC next day
+        page, _ = render([], [], [("s", b, Decimal("40.1"), Decimal("3.2"))])
+        self.assertIn("Sun Oct 04, 01:00 UTC", page)
+
     def test_flat_line_and_single_timestamp_give_finite_coordinates(self):
         flat = dashboard.svg_chart({"s": [(T0 + timedelta(hours=h), 21.0) for h in range(6)]})
         single = dashboard.svg_chart({"s": [(T0, 21.0)]})

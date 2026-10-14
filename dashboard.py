@@ -86,7 +86,7 @@ def main():
         f"<tr><td>{html.escape(n)}</td><td>{html.escape(l)}</td><td>{a}</td><td>{mn}</td><td>{mx}</td><td>{r:,}</td></tr>"
         for n, l, a, mn, mx, r in summary)
     arows = "".join(
-        f"<tr><td>{html.escape(n)}</td><td>{b:%a %b %d, %H:%M} UTC</td><td>{m} °C</td><td>+{z}</td></tr>"
+        f"<tr><td>{html.escape(n)}</td><td>{(b.astimezone(timezone.utc) if b.tzinfo else b):%a %b %d, %H:%M} UTC</td><td>{m} °C</td><td>+{z}</td></tr>"
         for n, b, m, z in anomalies) or '<tr><td colspan="4">No anomalies found.</td></tr>'
 
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">

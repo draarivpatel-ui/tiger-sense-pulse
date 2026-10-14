@@ -70,6 +70,22 @@ class SvgChart(unittest.TestCase):
             self.assertNotIn("inf", svg.lower())
             self.assertEqual(svg.count("<polyline"), 1)
 
+    def test_nan_and_inf_values_are_dropped_not_drawn(self):
+        vals = [(T0 + timedelta(hours=h), v) for h, v in enumerate([20.0, float("nan"), 22.0, float("inf"), 21.0])]
+        svg = dashboard.svg_chart({"s": vals})
+        self.assertNotIn("nan", svg.lower())
+        self.assertNotIn("inf", svg.lower())
+        pts = re.search(r'points="([^"]*)"', svg).group(1).split()
+        self.assertEqual(len(pts), 3)
+        self.assertIn("No data yet", dashboard.svg_chart({"s": [(T0, float("nan"))]}))
+
+    def test_null_hourly_average_is_skipped_by_main(self):
+        hourly = [("s", "lab", T0, Decimal("20.0"), None, None), ("s", "lab", T0 + timedelta(hours=1), None, None, None),
+                  ("s", "lab", T0 + timedelta(hours=2), Decimal("21.0"), None, None)]
+        page, _ = render(hourly, [], [])
+        self.assertNotIn("nan", page.lower())
+        self.assertEqual(len(re.search(r'points="([^"]*)"', page).group(1).split()), 2)
+
     def test_one_polyline_per_sensor_and_points_inside_the_viewbox(self):
         series = {f"s{i}": [(T0 + timedelta(hours=h), 20 + i + (h % 5)) for h in range(48)] for i in range(3)}
         svg = dashboard.svg_chart(series)

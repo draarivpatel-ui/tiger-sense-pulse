@@ -9,6 +9,7 @@ is the point of CAGGs: the dashboard query stays small no matter how much raw
 data piles up. Charts are hand-drawn inline SVG, so there are no JS dependencies.
 """
 import html
+import math
 import os
 from datetime import datetime, timezone
 
@@ -46,7 +47,10 @@ ORDER BY h.bucket
 
 
 def svg_chart(series):
-    """series: {name: [(datetime, value), ...]} -> inline SVG line chart."""
+    """series: {name: [(datetime, value), ...]} -> inline SVG line chart.
+
+    Non-finite values (NaN/inf) are dropped so they can't turn the SVG points into "nan"."""
+    series = {n: [(t, v) for t, v in vals if math.isfinite(v)] for n, vals in series.items()}
     pts = [p for v in series.values() for p in v]
     if not pts:
         return "<p>No data yet. Run run.sh first.</p>"
@@ -80,6 +84,8 @@ def main():
 
     series = {}
     for name, _loc, bucket, avg_t, _mn, _mx in hourly:
+        if avg_t is None:  # an empty bucket can come back NULL; skip it instead of crashing on float(None)
+            continue
         series.setdefault(name, []).append((bucket, float(avg_t)))
 
     rows = "".join(

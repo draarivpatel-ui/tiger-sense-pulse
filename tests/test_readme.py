@@ -85,5 +85,29 @@ class ReadmeMatchesRepo(unittest.TestCase):
         self.assertTrue("{:,} rows".format(len(data)) in README, "row count missing from README")
 
 
+    def test_incident_and_hour_counts_agree(self):
+        # 2 incidents (distinct sensors) over 3 anomalous hours: generator, sample-output.txt query 5 and README agree.
+        from datetime import datetime, timezone
+        from test_generator import anomalies, simulate
+        flagged = anomalies(simulate(datetime(2026, 10, 10, 23, tzinfo=timezone.utc), seed=1))
+        hours, incidents = len(flagged), len({name for name, _ in flagged})
+        sample = read(ROOT / "sample-output.txt").splitlines()
+        start = next(i for i, l in enumerate(sample) if l.startswith("--- 5. Anomaly"))
+        end = next(i for i in range(start, len(sample)) if re.match(r"\(\d+ rows?\)", sample[i]))
+        rows = [l.split("|")[0].strip() for l in sample[start + 3:end] if "|" in l]
+        self.assertEqual((len(rows), len(set(rows))), (hours, incidents))
+        self.assertEqual(sample[end], "(%d rows)" % hours)
+        words = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}
+        for phrase in ["exactly the %s injected hours" % words[hours],
+                       "**exactly** the %d injected hours" % hours,
+                       "exactly the %s injected incidents" % words[incidents],
+                       "exactly the %d injected incidents found (%d anomalous hours in query 5)" % (incidents, hours),
+                       "the %s incidents hidden in the data" % words[incidents],
+                       "%s incidents are injected" % words[incidents],
+                       "+ %d injected incidents" % incidents]:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, README)
+
+
 if __name__ == "__main__":
     unittest.main()

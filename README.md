@@ -29,7 +29,7 @@ A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)
 
 ## Judge it in 60 seconds
 
-No database, no `pip install`, no network: just `git` and Python 3.9+. Everything below was copied from real runs (Python 3.12, Oct 11–14, 2026).
+No database, no `pip install`, no network: just `git` and Python 3.9+. Everything below was copied from real runs (Python 3.12, Oct 11–16, 2026).
 
 **1. Get the code and run the tests (~2 s):**
 
@@ -39,7 +39,7 @@ cd tiger-sense-pulse
 bash test.sh
 ```
 
-Expected output (75 of the 79 `... ok` lines trimmed; your time will differ):
+Expected output (76 of the 80 `... ok` lines trimmed; your time will differ):
 
 ```
 test_empty_database_still_writes_a_page (test_dashboard.DashboardPage.test_empty_database_still_writes_a_page) ... ok
@@ -49,7 +49,7 @@ test_strings_and_comments_are_terminated (test_sql_lint.SqlFileLint.test_strings
 test_vector_schema (test_sql_lint.SqlFileLint.test_vector_schema) ... ok
 
 ----------------------------------------------------------------------
-Ran 79 tests in 0.986s
+Ran 80 tests in 1.032s
 
 OK
 ```
@@ -156,14 +156,14 @@ From `sample-output.txt` (local test, see "How it was tested" below):
 bash test.sh     # same as: python3 -m unittest discover -s tests -v
 ```
 
-79 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions (`.github/workflows/tests.yml`).
+80 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions (`.github/workflows/tests.yml`).
 
 - **SQL file lint** (`tests/test_sql_lint.py`, 15 tests): every `.sql` file is clean UTF-8 with a comment header, strings and comments are closed, parentheses balance, every statement ends with `;`, `\echo` appears only in `04_queries.sql`, `DROP`s only touch the four demo objects and use `IF EXISTS`, no passwords in connection strings, `run.sh` applies the four files in order with `ON_ERROR_STOP`, the README schema table matches the real `CREATE` columns, every `alias.column` in `04_queries.sql`, `dashboard.py` and `vector_search.py` exists, and the dashboard's anomaly query is identical to query 5.
 - **Generator unit tests** (`tests/test_generator.py`, 13 tests): reads the constants out of `sql/02_simulate.sql` and replays the simulation in Python with seeded noise. Checks 6 sensors × 2,017 timestamps = 12,102 rows, the daily peak at 20:00 UTC (3 PM US Central), plausible temperature and humidity ranges, that both incidents hit real sensors in non-overlapping windows, and that the anomaly finder flags **exactly** the 3 injected hours (greenhouse 2, server closet 1) with no false positives across 25 random seeds. Also checks the 30 notes in `vector/notes.py` (chronological, Oct 4–10, every sensor named and covered, incident clusters on Oct 7 and Oct 9).
 - **Dashboard generator** (`tests/test_dashboard.py`, 18 tests): `psycopg` is stubbed. Checks the SVG chart (one line per sensor, every point inside the viewBox, hotter is higher, no divide-by-zero, a flat line and naive (no-timezone) datetimes stay finite, NaN/inf values and NULL hourly averages are skipped instead of drawn, colors cycle, names escaped) and the written `dashboard.html` (summary and anomaly rows, "No anomalies found.", an empty database, anomaly hours printed in UTC (a naive bucket is assumed UTC, and the schema's `TIMESTAMPTZ` column that keeps buckets timezone-aware is pinned), HTML escaping of sensor names and locations in both tables, and that it only queries the continuous aggregates, never the raw hypertable).
 - **Finance feed** (`tests/test_finance.py`, 22 tests): parsing of the CoinGecko `/simple/price` response (exact `Decimal` prices, UTC timestamps, bad or missing rows skipped, 429 bodies raise), de-duplication of repeated updates, the 1 request/second floor and capped backoff, a keyless URL, the HTTP 403 (bot block) and 429 (rate limit) fallback (last good prices plus a "live prices unavailable" note, nothing re-inserted, "no cached prices yet" before the first live poll, other HTTP errors still raise), and the shape of `finance/schema.sql` (hypertable keyed on `(symbol, time)`, 1-minute OHLC continuous aggregate with a refresh policy, no `DROP`).
 - **Finance query helpers** (`tests/test_finance_query.py`, 4 tests): `finance/query.py` value formatting (`None`, `Decimal`, float, int, str) and the plain-text table renderer (aligned header and rows, empty result keeps the header and a zero row count).
-- **README consistency** (`tests/test_readme.py`, 7 tests): this README can't drift from the repo. The test counts above equal the real suite, every path in "Files" and every backticked file name exists, relative links resolve, the anomaly table quoted in step 2 is byte-for-byte the block in `sample-output.txt`, and the replay output quoted in step 2 is what the generator actually prints.
+- **README consistency** (`tests/test_readme.py`, 8 tests): this README can't drift from the repo. The test counts above equal the real suite, every path in "Files" and every backticked file name exists, relative links resolve, the anomaly table quoted in step 2 is byte-for-byte the block in `sample-output.txt`, the replay output quoted in step 2 is what the generator actually prints, and the incident wording (2 incidents, 3 anomalous hours) matches both the generator and query 5 in `sample-output.txt`.
 
 The tests check the files and the generator logic, not a live database. The end-to-end test is still running the whole pipeline:
 

@@ -140,8 +140,22 @@ class ReadmeMatchesRepo(unittest.TestCase):
         self.assertEqual(len(day_counts), 1, day_counts)
         n_days = day_counts.pop()
         self.assertIn("**%d rows** (%d days × 2 sensors; " % (2 * n_days, n_days), README)
-        self.assertIn("for %d days: " % span.days, README)
         self.assertIn("so it always touches %d UTC days" % n_days, README)
+        # Every place the README names the simulation length follows span.days: the hero alt text, step 2, the
+        # two "N-day window" mentions and the Files tree line for sql/02_simulate.sql.
+        for phrase, times in (("six sensors over %d days, " % span.days, 1), ("for %d days: " % span.days, 1),
+                              ("the %d-day window " % span.days, 2),
+                              ("sql/02_simulate.sql               %d days of realistic" % span.days, 1)):
+            self.assertEqual(README.count(phrase), times, phrase)
+        # and no other day count slips in: each "N day(s)" / "N-day" is the span, the 8 UTC days, or the 1-day chunk.
+        for m in re.finditer(r"(\d+)[- ]days?\b", README):
+            n, ctx = int(m.group(1)), README[m.start() - 30:m.end() + 15]
+            if n == span.days:
+                continue
+            if n == n_days:
+                self.assertRegex(ctx, r"\(%d days × 2 sensors|touches %d UTC days" % (n, n))
+            else:
+                self.assertEqual((n, "chunk_interval" in ctx), (1, True), ctx)
 
     def test_shown_ok_lines_are_the_real_first_and_last(self):
         # Step 1 shows the first 2 and last 2 `... ok` lines of `bash test.sh`; they must be the ids the suite runs

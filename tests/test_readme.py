@@ -109,5 +109,24 @@ class ReadmeMatchesRepo(unittest.TestCase):
                 self.assertIn(phrase, README)
 
 
+    def test_shown_ok_lines_are_the_real_first_and_last(self):
+        # Step 1 shows the first 2 and last 2 `... ok` lines of `bash test.sh`; they must be the ids the suite runs
+        # first and last (discovery order), in the Python 3.11+ verbose form the README quotes, so a rename can't
+        # leave the README quoting a line the suite never prints.
+        def flatten(suite):
+            for t in suite:
+                if isinstance(t, unittest.TestSuite):
+                    yield from flatten(t)
+                else:
+                    yield t
+        ids = [t.id() for t in flatten(unittest.TestLoader().discover(str(TESTS_DIR), top_level_dir=str(TESTS_DIR)))]
+        self.assertEqual(len(ids), len(set(ids)))
+        real = ["%s (%s) ... ok" % (i.rsplit(".", 1)[1], i) for i in ids]
+        block = fenced_blocks(README)[1].splitlines()
+        shown = [l for l in block if l.endswith(" ... ok")]
+        self.assertEqual(shown, real[:2] + real[-2:])
+        self.assertEqual(block[:5], real[:2] + ["..."] + real[-2:], "2 lines, '...', 2 lines, in that order")
+
+
 if __name__ == "__main__":
     unittest.main()

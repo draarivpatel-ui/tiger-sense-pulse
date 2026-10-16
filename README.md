@@ -214,7 +214,7 @@ Details and limits: [finance/README.md](finance/README.md). Data provided by Coi
 
 Honest disclosure: this project was built with AI assistance. An AI assistant (Hark) wrote the SQL, the Python dashboard and this README and ran the local tests on behalf of Aariv Patel (GitHub: draarivpatel-ui) for his GHW Hacktoberfest participation. The schema and queries follow Tiger Data's tutorials:
 - [Your first hypertable](https://www.tigerdata.com/docs/build/how-to/your-first-hypertable)
-- [Simulate an IoT sensor dataset](https://www.tigerdata.com/docs/build/examples/simulate-iot-sensor-data)
+- [Simulate an IoT sensor dataset](https://www.tigerdata.com/docs/learn/tutorials/simulate-iot-sensor-data)
 - [Continuous aggregates](https://www.tigerdata.com/docs/learn/continuous-aggregates)
 
 ## Files

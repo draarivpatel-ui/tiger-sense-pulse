@@ -39,7 +39,7 @@ cd tiger-sense-pulse
 bash test.sh
 ```
 
-Expected output (77 of the 81 `... ok` lines trimmed; your time will differ):
+Expected output (78 of the 82 `... ok` lines trimmed; your time will differ):
 
 ```
 test_empty_database_still_writes_a_page (test_dashboard.DashboardPage.test_empty_database_still_writes_a_page) ... ok
@@ -49,7 +49,7 @@ test_strings_and_comments_are_terminated (test_sql_lint.SqlFileLint.test_strings
 test_vector_schema (test_sql_lint.SqlFileLint.test_vector_schema) ... ok
 
 ----------------------------------------------------------------------
-Ran 81 tests in 1.031s
+Ran 82 tests in 1.064s
 
 OK
 ```
@@ -156,14 +156,14 @@ From `sample-output.txt` (local test, see "How it was tested" below):
 bash test.sh     # same as: python3 -m unittest discover -s tests -v
 ```
 
-81 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions (`.github/workflows/tests.yml`).
+82 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions (`.github/workflows/tests.yml`).
 
 - **SQL file lint** (`tests/test_sql_lint.py`, 15 tests): every `.sql` file is clean UTF-8 with a comment header, strings and comments are closed, parentheses balance, every statement ends with `;`, `\echo` appears only in `04_queries.sql`, `DROP`s only touch the four demo objects and use `IF EXISTS`, no passwords in connection strings, `run.sh` applies the four files in order with `ON_ERROR_STOP`, the README schema table matches the real `CREATE` columns, every `alias.column` in `04_queries.sql`, `dashboard.py` and `vector_search.py` exists, and the dashboard's anomaly query is identical to query 5.
 - **Generator unit tests** (`tests/test_generator.py`, 13 tests): reads the constants out of `sql/02_simulate.sql` and replays the simulation in Python with seeded noise. Checks 6 sensors × 2,017 timestamps = 12,102 rows, the daily peak at 20:00 UTC (3 PM US Central), plausible temperature and humidity ranges, that both incidents hit real sensors in non-overlapping windows, and that the anomaly finder flags **exactly** the 3 injected hours (greenhouse 2, server closet 1) with no false positives across 25 random seeds. Also checks the 30 notes in `vector/notes.py` (chronological, Oct 4–10, every sensor named and covered, incident clusters on Oct 7 and Oct 9).
 - **Dashboard generator** (`tests/test_dashboard.py`, 18 tests): `psycopg` is stubbed. Checks the SVG chart (one line per sensor, every point inside the viewBox, hotter is higher, no divide-by-zero, a flat line and naive (no-timezone) datetimes stay finite, NaN/inf values and NULL hourly averages are skipped instead of drawn, colors cycle, names escaped) and the written `dashboard.html` (summary and anomaly rows, "No anomalies found.", an empty database, anomaly hours printed in UTC (a naive bucket is assumed UTC, and the schema's `TIMESTAMPTZ` column that keeps buckets timezone-aware is pinned), HTML escaping of sensor names and locations in both tables, and that it only queries the continuous aggregates, never the raw hypertable).
 - **Finance feed** (`tests/test_finance.py`, 22 tests): parsing of the CoinGecko `/simple/price` response (exact `Decimal` prices, UTC timestamps, bad or missing rows skipped, 429 bodies raise), de-duplication of repeated updates, the 1 request/second floor and capped backoff, a keyless URL, the HTTP 403 (bot block) and 429 (rate limit) fallback (last good prices plus a "live prices unavailable" note, nothing re-inserted, "no cached prices yet" before the first live poll, other HTTP errors still raise), and the shape of `finance/schema.sql` (hypertable keyed on `(symbol, time)`, 1-minute OHLC continuous aggregate with a refresh policy, no `DROP`).
 - **Finance query helpers** (`tests/test_finance_query.py`, 4 tests): `finance/query.py` value formatting (`None`, `Decimal`, float, int, str) and the plain-text table renderer (aligned header and rows, empty result keeps the header and a zero row count).
-- **README consistency** (`tests/test_readme.py`, 9 tests): this README can't drift from the repo. The test counts above equal the real suite, every path in "Files" and every backticked file name exists, relative links resolve, the anomaly table quoted in step 2 is byte-for-byte the block in `sample-output.txt`, the replay output quoted in step 2 is what the generator actually prints, and the incident wording (2 incidents, 3 anomalous hours) matches both the generator and query 5 in `sample-output.txt`, and the four `... ok` lines quoted in step 1 are the suite's real first two and last two.
+- **README consistency** (`tests/test_readme.py`, 10 tests): this README can't drift from the repo. The test counts above equal the real suite, every path in "Files" and every backticked file name exists, relative links resolve, the anomaly table quoted in step 2 is byte-for-byte the block in `sample-output.txt`, the replay output quoted in step 2 is what the generator actually prints, and the incident wording (2 incidents, 3 anomalous hours) matches both the generator and query 5 in `sample-output.txt`, the four `... ok` lines quoted in step 1 are the suite's real first two and last two, and the Tiger Cloud run's "16 rows (8 days × 2 sensors)" follows from the 7-day window in `sql/02_simulate.sql` and the daily bucket in `sql/03_continuous_aggregates.sql` for every run hour of 2026.
 
 The tests check the files and the generator logic, not a live database. The end-to-end test is still running the whole pipeline:
 
@@ -172,7 +172,7 @@ DATABASE_URL="postgres://..." ./run.sh     # builds schema, simulates data, crea
 ```
 
 - **Self-hosted run:** end to end against **TimescaleDB 2.30.2 on PostgreSQL 16.15**, built from source in a Linux sandbox. `sample-output.txt`, `dashboard.html` and `dashboard-preview.png` come from that run: 12,102 rows, 8 chunks, and exactly the 2 injected incidents found (3 anomalous hours in query 5).
-- **Tiger Cloud run (Oct 10, 2026):** the schema, simulation and continuous aggregates were run in the Tiger Console SQL editor on a Tiger Cloud service (AWS us-east-1, PostgreSQL 18.6, TimescaleDB 2.30.2). The simulation inserted **12,102 rows** there, and a daily-summary query on `sensor_daily` (`day`, `avg_temp`, `min_temp`, `max_temp`, `readings`) for the greenhouse and server closet returned **16 rows** (8 days × 2 sensors), with the greenhouse incident visible as a 42.3 °C max and the server-closet one as 38.6 °C. The Console's editor took one statement per line, so the files were pasted statement by statement rather than through `run.sh`.
+- **Tiger Cloud run (Oct 10, 2026):** the schema, simulation and continuous aggregates were run in the Tiger Console SQL editor on a Tiger Cloud service (AWS us-east-1, PostgreSQL 18.6, TimescaleDB 2.30.2). The simulation inserted **12,102 rows** there, and a daily-summary query on `sensor_daily` (`day`, `avg_temp`, `min_temp`, `max_temp`, `readings`) for the greenhouse and server closet returned **16 rows** (8 days × 2 sensors; the 7-day window includes both ends and `sensor_daily` buckets by UTC day, so it always touches 8 UTC days, the last one partial and usually the first too), with the greenhouse incident visible as a 42.3 °C max and the server-closet one as 38.6 °C. The Console's editor took one statement per line, so the files were pasted statement by statement rather than through `run.sh`.
 - Older TimescaleDB builds note: the `CREATE TABLE ... WITH (tsdb.hypertable)` syntax needs a recent TimescaleDB (it is what the Tiger Cloud docs use), and continuous aggregates are not available in Apache-only community builds.
 
 Note: `sample-output.txt` shows times in UTC.

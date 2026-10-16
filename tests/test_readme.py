@@ -109,6 +109,40 @@ class ReadmeMatchesRepo(unittest.TestCase):
                 self.assertIn(phrase, README)
 
 
+    def test_daily_rollup_day_count_matches_sql_window(self):
+        # README says 7 days of data but "16 rows (8 days × 2 sensors)" from sensor_daily. Both hold: the window in
+        # 02_simulate.sql includes both ends and sensor_daily uses time_bucket('1 day') (UTC days), so it always
+        # touches 8 UTC days; the last day is partial, and the first is too unless the run ends at 00:00 UTC.
+        from datetime import datetime, timedelta, timezone
+        from test_generator import parse_interval
+        sim = read(ROOT / "sql" / "02_simulate.sql")
+        caggs = read(ROOT / "sql" / "03_continuous_aggregates.sql")
+        m = re.search(r"generate_series\(date_trunc\('hour', now\(\)\) - interval '([^']+)',\s*"
+                      r"date_trunc\('hour', now\(\)\),\s*interval '([^']+)'\)", sim)
+        self.assertIsNotNone(m, "simulation window not found in 02_simulate.sql")
+        span, step = parse_interval(m.group(1)), parse_interval(m.group(2))
+        daily = caggs[caggs.index("CREATE MATERIALIZED VIEW sensor_daily"):]
+        self.assertIn("time_bucket('1 day', bucket) AS day", daily[:daily.index(";")])
+        per_day = int(timedelta(days=1) / step)
+        day_counts = set()
+        end = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        for _ in range(365 * 24):                       # every whole-hour run time in 2026
+            start = end - span                          # generate_series includes both ends
+            self.assertEqual(span % step, timedelta(0))
+            start_midnight = start.replace(hour=0, minute=0)
+            end_midnight = end.replace(hour=0, minute=0)
+            first = -(-(start_midnight + timedelta(days=1) - start) // step)   # readings on the first UTC day
+            last = (end - end_midnight) // step + 1                            # readings on the last UTC day
+            self.assertLess(last, per_day)
+            self.assertEqual(first == per_day, end.hour == 0)
+            day_counts.add((end_midnight - start_midnight).days + 1)
+            end += timedelta(hours=1)
+        self.assertEqual(len(day_counts), 1, day_counts)
+        n_days = day_counts.pop()
+        self.assertIn("**%d rows** (%d days × 2 sensors; " % (2 * n_days, n_days), README)
+        self.assertIn("for %d days: " % span.days, README)
+        self.assertIn("so it always touches %d UTC days" % n_days, README)
+
     def test_shown_ok_lines_are_the_real_first_and_last(self):
         # Step 1 shows the first 2 and last 2 `... ok` lines of `bash test.sh`; they must be the ids the suite runs
         # first and last (discovery order), in the Python 3.11+ verbose form the README quotes, so a rename can't

@@ -171,7 +171,7 @@ The tests check the files and the generator logic, not a live database. The end-
 DATABASE_URL="postgres://..." ./run.sh     # builds schema, simulates data, creates CAGGs, runs the queries
 ```
 
-- **Self-hosted run:** end to end against **TimescaleDB 2.30.2 on PostgreSQL 16.15**, built from source in a Linux sandbox. `sample-output.txt`, `dashboard.html` and `dashboard-preview.png` come from that run: 12,102 rows, 8 chunks, and exactly the 2 injected anomalies found.
+- **Self-hosted run:** end to end against **TimescaleDB 2.30.2 on PostgreSQL 16.15**, built from source in a Linux sandbox. `sample-output.txt`, `dashboard.html` and `dashboard-preview.png` come from that run: 12,102 rows, 8 chunks, and exactly the 2 injected incidents found (3 anomalous hours in query 5).
 - **Tiger Cloud run (Oct 10, 2026):** the schema, simulation and continuous aggregates were run in the Tiger Console SQL editor on a Tiger Cloud service (AWS us-east-1, PostgreSQL 18.6, TimescaleDB 2.30.2). The simulation inserted **12,102 rows** there, and a daily-summary query on `sensor_daily` (`day`, `avg_temp`, `min_temp`, `max_temp`, `readings`) for the greenhouse and server closet returned **16 rows** (8 days × 2 sensors), with the greenhouse incident visible as a 42.3 °C max and the server-closet one as 38.6 °C. The Console's editor took one statement per line, so the files were pasted statement by statement rather than through `run.sh`.
 - Older TimescaleDB builds note: the `CREATE TABLE ... WITH (tsdb.hypertable)` syntax needs a recent TimescaleDB (it is what the Tiger Cloud docs use), and continuous aggregates are not available in Apache-only community builds.
 

@@ -1,12 +1,22 @@
-# Sensor Pulse: simulated school IoT sensors on Tiger Cloud (TimescaleDB)
+# Sensor Pulse
 
-**Live link:** https://github.com/draarivpatel-ui/tiger-sense-pulse (no hosted web app: this is a database project. It runs on your own Tiger Cloud service with `./run.sh`, and `dashboard.html` is a static page it generates. The copy generated from the local test is also served by GitHub Pages: [aariv.me/tiger-sense-pulse/dashboard.html](https://aariv.me/tiger-sense-pulse/dashboard.html), with a one-page project summary at [aariv.me/tiger-sense-pulse/docs/](https://aariv.me/tiger-sense-pulse/docs/).)
+**Simulated school IoT sensors on Tiger Cloud (TimescaleDB): a hypertable, continuous aggregates and an anomaly query, tested offline.**
+
+[![tests](https://github.com/draarivpatel-ui/tiger-sense-pulse/actions/workflows/tests.yml/badge.svg)](https://github.com/draarivpatel-ui/tiger-sense-pulse/actions/workflows/tests.yml) · License: MIT · Built for **MLH Global Hack Week: Hacktoberfest (Oct 2026)**
+
+**Dashboard (GitHub Pages):** [aariv.me/tiger-sense-pulse/dashboard.html](https://aariv.me/tiger-sense-pulse/dashboard.html) · **Project summary:** [aariv.me/tiger-sense-pulse/docs/](https://aariv.me/tiger-sense-pulse/docs/) · **Code:** https://github.com/draarivpatel-ui/tiger-sense-pulse
+
+> **Live link:** there is no hosted web app: this is a database project. It runs on your own Tiger Cloud service with `./run.sh`, and `dashboard.html` is a static page it generates. The copy generated from the local test is the one served by GitHub Pages (links above).
 
 **One line:** six simulated school sensors stream into a TimescaleDB hypertable on Tiger Cloud, continuous aggregates roll them up hourly and daily, and an anomaly query catches the two incidents hidden in the data.
 
 ![Sensor Pulse dashboard: hourly average temperature for six sensors over 7 days, with the greenhouse and server-closet spikes, and the per-sensor summary from sensor_daily](docs/hero.png)
 
 *The generated `dashboard.html`, rendered with headless Chromium (Oct 2026).*
+
+**Contents:** [Judge it in 60 seconds](#judge-it-in-60-seconds) · [Features](#features) · [Tech](#tech) · [Run it on Tiger Cloud](#run-it-on-tiger-cloud) · [How it was tested](#how-it-was-tested) · [Limits](#limits-and-honesty) · [Parts 2–4](#part-2-oct-11-vector-search-with-pgvector--pgvectorscale) · [AI assistance](#built-with-ai-assistance) · [Files](#files)
+
+## GHW challenges covered
 
 A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)**. It covers several Tiger Data challenges in one repo (the first three below; vector search, Tiger CLI + MCP and real-time financial data are Parts 2-4 further down):
 

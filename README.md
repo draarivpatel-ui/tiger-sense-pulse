@@ -14,11 +14,11 @@
 
 *The generated `dashboard.html`, rendered with headless Chromium (Oct 2026).*
 
-**Contents:** [Judge it in 60 seconds](#judge-it-in-60-seconds) · [Features](#features) · [Tech](#tech) · [Run it on Tiger Cloud](#run-it-on-tiger-cloud) · [How it was tested](#how-it-was-tested) · [Limits](#limits-and-honesty) · [Parts 2–4](#part-2-oct-11-vector-search-with-pgvector--pgvectorscale) · [AI assistance](#built-with-ai-assistance) · [Files](#files)
+**Contents:** [Judge it in 60 seconds](#judge-it-in-60-seconds) · [Features](#features) · [Tech](#tech) · [Run it on Tiger Cloud](#run-it-on-tiger-cloud) · [How it was tested](#how-it-was-tested) · [Limits](#limits-and-honesty) · [Parts 2-4](#part-2-oct-11-vector-search-with-pgvector--pgvectorscale) · [AI assistance](#built-with-ai-assistance) · [Files](#files)
 
 ## GHW challenges covered
 
-A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)**. It covers several Tiger Data challenges in one repo (the first three below; vector search, Tiger CLI + MCP and real-time financial data are Parts 2-4 further down):
+I built Sensor Pulse as a 9th-grade student at Dulles High School (Math and Science Academy) in Sugar Land, Texas, for **MLH Global Hack Week: Hacktoberfest (Oct 2026)**. Walking past our school's robotics lab, chemistry room, library, greenhouse, courtyard, and server closet made me wonder how you'd monitor room telemetry and catch an AC or vent failure without scanning every raw reading by hand. This repository covers several Tiger Data challenges in one place (the first three below; vector search, Tiger CLI + MCP and real-time financial data are Parts 2-4 further down):
 
 | GHW challenge | Where it lives |
 |---|---|
@@ -29,7 +29,7 @@ A small time-series project for **MLH Global Hack Week: Hacktoberfest (Oct 2026)
 
 ## Judge it in 60 seconds
 
-No database, no `pip install`, no network: just `git` and Python 3.9+. Everything below was copied from real runs (Python 3.12, Oct 11–16, 2026).
+No database, no `pip install`, no network: just `git` and Python 3.9+. Everything below was copied from real runs (Python 3.12, Oct 11-16, 2026).
 
 **1. Get the code and run the tests (~2 s):**
 
@@ -106,7 +106,7 @@ The full pipeline on a live database is `DATABASE_URL=... ./run.sh` (see "Run it
 - **psql** + a 10-line `run.sh` to apply the four SQL files in order.
 - **Python 3** (`psycopg`, see `requirements.txt`) for `dashboard.py`, which writes a static HTML page with an inline SVG chart. No JavaScript libraries.
 
-### Schema (as created by `sql/01`–`03`, and as it exists on the Tiger Cloud service)
+### Schema (as created by `sql/01`-`03`, and as it exists on the Tiger Cloud service)
 
 | Object | Columns |
 |---|---|
@@ -159,7 +159,7 @@ bash test.sh     # same as: python3 -m unittest discover -s tests -v
 82 tests, Python 3.9+ standard library only (no pip install, no database, no network). They also run on every push in GitHub Actions on Python 3.9, 3.12 and 3.13 (`.github/workflows/tests.yml`); I also ran the suite locally on 3.12 and 3.13 with DeprecationWarning and ResourceWarning turned into errors (82 OK on both).
 
 - **SQL file lint** (`tests/test_sql_lint.py`, 15 tests): every `.sql` file is clean UTF-8 with a comment header, strings and comments are closed, parentheses balance, every statement ends with `;`, `\echo` appears only in `04_queries.sql`, `DROP`s only touch the four demo objects and use `IF EXISTS`, no passwords in connection strings, `run.sh` applies the four files in order with `ON_ERROR_STOP`, the README schema table matches the real `CREATE` columns, every `alias.column` in `04_queries.sql`, `dashboard.py` and `vector_search.py` exists, and the dashboard's anomaly query is identical to query 5.
-- **Generator unit tests** (`tests/test_generator.py`, 13 tests): reads the constants out of `sql/02_simulate.sql` and replays the simulation in Python with seeded noise. Checks 6 sensors × 2,017 timestamps = 12,102 rows, the daily peak at 20:00 UTC (3 PM US Central), plausible temperature and humidity ranges, that both incidents hit real sensors in non-overlapping windows, and that the anomaly finder flags **exactly** the 3 injected hours (greenhouse 2, server closet 1) with no false positives across 25 random seeds. Also checks the 30 notes in `vector/notes.py` (chronological, Oct 4–10, every sensor named and covered, incident clusters on Oct 7 and Oct 9).
+- **Generator unit tests** (`tests/test_generator.py`, 13 tests): reads the constants out of `sql/02_simulate.sql` and replays the simulation in Python with seeded noise. Checks 6 sensors × 2,017 timestamps = 12,102 rows, the daily peak at 20:00 UTC (3 PM US Central), plausible temperature and humidity ranges, that both incidents hit real sensors in non-overlapping windows, and that the anomaly finder flags **exactly** the 3 injected hours (greenhouse 2, server closet 1) with no false positives across 25 random seeds. Also checks the 30 notes in `vector/notes.py` (chronological, Oct 4-10, every sensor named and covered, incident clusters on Oct 7 and Oct 9).
 - **Dashboard generator** (`tests/test_dashboard.py`, 18 tests): `psycopg` is stubbed. Checks the SVG chart (one line per sensor, every point inside the viewBox, hotter is higher, no divide-by-zero, a flat line and naive (no-timezone) datetimes stay finite, NaN/inf values and NULL hourly averages are skipped instead of drawn, colors cycle, names escaped) and the written `dashboard.html` (summary and anomaly rows, "No anomalies found.", an empty database, anomaly hours printed in UTC (a naive bucket is assumed UTC, and the schema's `TIMESTAMPTZ` column that keeps buckets timezone-aware is pinned), HTML escaping of sensor names and locations in both tables, and that it only queries the continuous aggregates, never the raw hypertable).
 - **Finance feed** (`tests/test_finance.py`, 22 tests): parsing of the CoinGecko `/simple/price` response (exact `Decimal` prices, UTC timestamps, bad or missing rows skipped, 429 bodies raise), de-duplication of repeated updates, the 1 request/second floor and capped backoff, a keyless URL, the HTTP 403 (bot block) and 429 (rate limit) fallback (last good prices plus a "live prices unavailable" note, nothing re-inserted, "no cached prices yet" before the first live poll, other HTTP errors still raise), and the shape of `finance/schema.sql` (hypertable keyed on `(symbol, time)`, 1-minute OHLC continuous aggregate with a refresh policy, no `DROP`).
 - **Finance query helpers** (`tests/test_finance_query.py`, 4 tests): `finance/query.py` value formatting (`None`, `Decimal`, float, int, str) and the plain-text table renderer (aligned header and rows, empty result keeps the header and a zero row count).

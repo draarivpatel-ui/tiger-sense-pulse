@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 import psycopg
 
-COLORS = ["#2563eb", "#16a34a", "#9333ea", "#ea580c", "#0891b2", "#dc2626"]
+COLORS = ["#38bdf8", "#34d399", "#a78bfa", "#fb923c", "#22d3ee", "#f87171"]
 W, H, PAD = 900, 320, 40
 
 HOURLY_SQL = """
@@ -63,11 +63,11 @@ def svg_chart(series):
     out = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Hourly average temperature">']
     for i in range(5):  # gridlines + labels
         v = lo + (hi - lo) * i / 4
-        out.append(f'<line x1="{PAD}" x2="{W-PAD}" y1="{y(v):.1f}" y2="{y(v):.1f}" stroke="#e5e7eb"/>'
-                   f'<text x="4" y="{y(v)+4:.1f}" font-size="11" fill="#6b7280">{v:.0f}°</text>')
+        out.append(f'<line x1="{PAD}" x2="{W-PAD}" y1="{y(v):.1f}" y2="{y(v):.1f}" stroke="#1e293b"/>'
+                   f'<text x="4" y="{y(v)+4:.1f}" font-size="11" fill="#94a3b8">{v:.0f}°</text>')
     for i, (name, vals) in enumerate(series.items()):
         d = " ".join(f"{x(t):.1f},{y(v):.1f}" for t, v in vals)
-        out.append(f'<polyline fill="none" stroke="{COLORS[i % len(COLORS)]}" stroke-width="1.6" points="{d}"/>')
+        out.append(f'<polyline fill="none" stroke="{COLORS[i % len(COLORS)]}" stroke-width="1.75" points="{d}"/>')
     out.append("</svg>")
     legend = " ".join(
         f'<span><i style="background:{COLORS[i % len(COLORS)]}"></i>{html.escape(n)}</span>'
@@ -99,12 +99,29 @@ def main():
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sensor Pulse · Tiger Cloud IoT demo</title>
 <style>
- body{{font-family:system-ui,sans-serif;max-width:960px;margin:2rem auto;padding:0 1rem;color:#111827}}
- h1{{margin-bottom:.2rem}} .sub{{color:#6b7280;margin-top:0}}
- svg{{width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px}}
- .legend span{{margin-right:1rem;font-size:.85rem}} .legend i{{display:inline-block;width:10px;height:10px;margin-right:4px;border-radius:2px}}
- table{{border-collapse:collapse;width:100%;margin:1rem 0}} th,td{{text-align:left;padding:.4rem .6rem;border-bottom:1px solid #e5e7eb}}
- th{{background:#f9fafb}}
+ :root{{color-scheme:dark;--bg:#090c10;--surface:#11161f;--border:#1e293b;--ink:#e2e8f0;--muted:#94a3b8;--accent:#38bdf8;--signal:#34d399}}
+ *{{box-sizing:border-box}}
+ ::selection{{background:rgba(56,189,248,.24);color:#f8fafc}}
+ html{{scrollbar-width:thin;scrollbar-color:#334155 #090c10}}
+ ::-webkit-scrollbar{{width:10px;height:10px}} ::-webkit-scrollbar-track{{background:#090c10}} ::-webkit-scrollbar-thumb{{background:#334155;border-radius:999px;border:2px solid #090c10}}
+ :focus-visible{{outline:2px solid var(--accent);outline-offset:2px}}
+ body{{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:1020px;margin:2.25rem auto;padding:0 1.25rem 3rem;color:var(--ink);background:var(--bg);line-height:1.55;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}}
+ h1{{margin:0 0 .25rem;font-size:1.85rem;letter-spacing:-.025em;color:#f8fafc}}
+ h2{{margin:2rem 0 .65rem;font-size:1.1rem;font-weight:600;letter-spacing:-.01em;color:#f1f5f9}}
+ .sub{{color:var(--muted);margin:0 0 1.5rem;font-size:.92rem;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}}
+ code{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;color:var(--accent);background:rgba(56,189,248,.1);padding:.1rem .35rem;border-radius:4px}}
+ svg{{width:100%;height:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.35rem;display:block}}
+ svg text{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}}
+ .legend{{display:flex;flex-wrap:wrap;gap:.5rem 1.15rem;margin-top:.65rem;padding:.55rem .85rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}}
+ .legend span{{display:inline-flex;align-items:center;font-size:.82rem;color:var(--ink)}} .legend i{{display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:2px}}
+ table{{border-collapse:collapse;width:100%;margin:.65rem 0 1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;font-variant-numeric:tabular-nums}}
+ th,td{{text-align:left;padding:.55rem .8rem;border-bottom:1px solid var(--border);font-size:.92rem}}
+ th{{background:#0d121a;color:var(--muted);font-weight:600;font-size:.82rem}}
+ td{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}}
+ td:nth-child(2){{font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;color:var(--muted)}}
+ tr:last-child td{{border-bottom:0}}
+ tr:hover td{{background:rgba(56,189,248,.04)}}
+ @media (prefers-reduced-motion:reduce){{*,*::before,*::after{{animation-duration:.01ms!important;transition-duration:.01ms!important}}}}
 </style></head><body>
 <h1>Sensor Pulse</h1>
 <p class="sub">Simulated school IoT sensors on TimescaleDB · generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC from continuous aggregates</p>

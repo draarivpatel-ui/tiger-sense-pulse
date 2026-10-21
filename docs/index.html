@@ -6,35 +6,69 @@
   <title>Sensor Pulse</title>
   <style>
     :root {
-      color-scheme: light;
-      --bg: #ffffff;
-      --text: #1a1a1a;
-      --muted: #4a5568;
-      --surface: #f7fafc;
-      --border: #d2d6dc;
-      --accent: #0b5fff;
-      --accent-visited: #6b2fb3;
+      color-scheme: dark;
+      --bg: #090c10;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --surface: #11161f;
+      --surface-header: #0d121a;
+      --border: #1e293b;
+      --accent: #38bdf8;
+      --accent-visited: #7dd3fc;
+      --signal: #34d399;
     }
 
     * { box-sizing: border-box; }
 
+    ::selection {
+      background: rgba(56, 189, 248, 0.24);
+      color: #f8fafc;
+    }
+
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: #334155 #090c10;
+    }
+
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #090c10; }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 999px;
+      border: 2px solid #090c10;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       line-height: 1.6;
       color: var(--text);
       background: var(--bg);
+      font-variant-numeric: tabular-nums;
+      -webkit-font-smoothing: antialiased;
     }
 
     main {
-      max-width: 900px;
+      max-width: 960px;
       margin: 0 auto;
-      padding: 2rem 1rem 3rem;
+      padding: 2.5rem 1.25rem 3.5rem;
     }
 
     h1, h2 {
       line-height: 1.25;
       margin-top: 0;
+      color: #f8fafc;
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      margin-top: 2rem;
+      font-size: 1.25rem;
     }
 
     p { margin: 0.75rem 0; }
@@ -42,10 +76,11 @@
     .lede {
       font-size: 1.05rem;
       color: var(--muted);
-      margin-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
+      max-width: 68ch;
     }
 
-    figure { margin: 0 0 1.5rem; }
+    figure { margin: 0 0 1.75rem; }
 
     img {
       max-width: 100%;
@@ -58,25 +93,32 @@
     figcaption {
       margin-top: 0.5rem;
       color: var(--muted);
-      font-size: 0.95rem;
+      font-size: 0.9rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       margin: 0.75rem 0 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      overflow: hidden;
+      font-variant-numeric: tabular-nums;
     }
 
     th, td {
       border: 1px solid var(--border);
-      padding: 0.6rem;
+      padding: 0.65rem 0.85rem;
       text-align: left;
       vertical-align: top;
     }
 
     th {
-      background: var(--surface);
+      background: var(--surface-header);
       font-weight: 600;
+      color: #f1f5f9;
     }
 
     a {
@@ -91,12 +133,20 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 0.5rem;
-      padding: 0.75rem;
+      padding: 0.85rem 1rem;
       overflow-x: auto;
     }
 
     code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.92em;
+    }
+
+    p code, td code, li code {
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--accent);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
     }
 
     .visually-hidden {
@@ -111,7 +161,14 @@
       border: 0;
     }
 
-    tbody th { background: var(--bg); }
+    tbody th { background: var(--surface-header); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -163,7 +220,7 @@
     </section>
 
     <section aria-labelledby="parts-title">
-      <h2 id="parts-title">Parts 2&ndash;4: vector search, MCP and live crypto prices</h2>
+      <h2 id="parts-title">Parts 2-4: vector search, MCP and live crypto prices</h2>
       <p>Later parts run on the same Tiger Cloud service. Each one has real output checked into the repository; details and limits are in the <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse#readme">README</a>.</p>
       <table>
         <caption class="visually-hidden">Parts 2 to 4 of the project: what each does and where it lives</caption>
@@ -177,7 +234,7 @@
         <tbody>
           <tr>
             <th scope="row">Part 2: vector search with pgvector + pgvectorscale</th>
-            <td>A <code>maintenance_notes</code> hypertable with a <code>VECTOR(384)</code> column and a StreamingDiskANN index holds 30 synthetic staff notes (Oct 4&ndash;10, 2026), embedded locally with fastembed (<code>BAAI/bge-small-en-v1.5</code>, no API key). Similarity search is combined with a time filter, a sensor-type filter and a join to the <code>sensor_hourly</code> continuous aggregate. Example: &ldquo;the air conditioning broke and the room overheated&rdquo; returns the two server-closet AC notes from Oct 9 first. Limit: 30 rows is far too few to show DiskANN&rsquo;s speed; the run shows the index being used, not a benchmark.</td>
+            <td>A <code>maintenance_notes</code> hypertable with a <code>VECTOR(384)</code> column and a StreamingDiskANN index holds 30 synthetic staff notes (Oct 4-10, 2026), embedded locally with fastembed (<code>BAAI/bge-small-en-v1.5</code>, no API key). Similarity search is combined with a time filter, a sensor-type filter and a join to the <code>sensor_hourly</code> continuous aggregate. Example: &ldquo;the air conditioning broke and the room overheated&rdquo; returns the two server-closet AC notes from Oct 9 first. Limit: 30 rows is far too few to show DiskANN&rsquo;s speed; the run shows the index being used, not a benchmark.</td>
             <td>
               <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/tree/main/vector">vector/</a>
               (<a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/vector/sample-output.txt">sample output</a>)
@@ -221,7 +278,7 @@ bash test.sh</code></pre>
 
     <section aria-labelledby="ai-title">
       <h2 id="ai-title">Built with AI assistance</h2>
-      <p>An AI assistant (Hark) wrote the SQL, Python and README for Aariv Patel's GHW Hacktoberfest entry. The GitHub Copilot coding agent wrote this page (#2), and Hark later added the Parts 2&ndash;4 summary from the README. All sensor data is simulated; the crypto prices in Part 4 are live data from CoinGecko (Powered by CoinGecko).</p>
+      <p>An AI assistant (Hark) wrote the SQL, Python and README for Aariv Patel's GHW Hacktoberfest entry. The GitHub Copilot coding agent wrote this page (#2), and Hark later added the Parts 2-4 summary from the README. All sensor data is simulated; the crypto prices in Part 4 are live data from CoinGecko (Powered by CoinGecko).</p>
     </section>
   </main>
 </body>

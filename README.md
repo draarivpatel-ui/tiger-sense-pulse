@@ -18,7 +18,7 @@
 
 ## GHW challenges covered
 
-I built Sensor Pulse as a 9th-grade student at Dulles High School (Math and Science Academy) in Sugar Land, Texas, for **MLH Global Hack Week: Hacktoberfest (Oct 2026)**. Walking past our school's robotics lab, chemistry room, library, greenhouse, courtyard, and server closet made me wonder how you'd monitor room telemetry and catch an AC or vent failure without scanning every raw reading by hand. This repository covers several Tiger Data challenges in one place (the first three below; vector search, Tiger CLI + MCP and real-time financial data are Parts 2-4 further down):
+Built by Aariv Patel for **MLH Global Hack Week: Hacktoberfest (Oct 2026)**. Monitoring building and campus room telemetry (robotics lab, chemistry room, library, greenhouse, courtyard, and server closet) makes it possible to catch an AC or vent failure without scanning every raw reading by hand. This repository covers several Tiger Data challenges in one place (the first three below; vector search, Tiger CLI + MCP and real-time financial data are Parts 2-4 further down):
 
 | GHW challenge | Where it lives |
 |---|---|

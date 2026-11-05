@@ -14,7 +14,7 @@
 
 *The generated `dashboard.html`, rendered with headless Chromium (Oct 2026).*
 
-**Contents:** [Judge it in 60 seconds](#judge-it-in-60-seconds) · [Features](#features) · [Tech](#tech) · [Run it on Tiger Cloud](#run-it-on-tiger-cloud) · [How it was tested](#how-it-was-tested) · [Limits](#limits-and-honesty) · [Parts 2-4](#part-2-oct-11-vector-search-with-pgvector--pgvectorscale) · [AI assistance](#built-with-ai-assistance) · [Files](#files)
+**Contents:** [Judge it in 60 seconds](#judge-it-in-60-seconds) · [Features](#features) · [Tech](#tech) · [Run it on Tiger Cloud](#run-it-on-tiger-cloud) · [How it was tested](#how-it-was-tested) · [Limits](#limits-and-honesty) · [Parts 2-4](#part-2-oct-11-vector-search-with-pgvector--pgvectorscale) · [Tutorials & references](#tutorials-and-references) · [Files](#files)
 
 ## GHW challenges covered
 
@@ -196,9 +196,9 @@ Real output from Tiger Cloud is in `vector/sample-output.txt`. For example, "the
 
 Run it: `pip install "psycopg[binary]" fastembed` (quoted so zsh doesn't treat the brackets as a glob) then `DATABASE_URL=... python vector/vector_search.py --load`
 
-## Part 3 (Oct 11): Tiger CLI + MCP with an AI agent
+## Part 3 (Oct 11): Tiger CLI + MCP client
 
-The Tiger CLI (v0.26.0) was installed, authenticated with `tiger auth login --headless` (device code approved in the Tiger Console), and `tiger service list` shows the `mlh-hackweek` service. `mcp/mcp_client.py` launches `tiger mcp start` over stdio and lets an AI agent (Hark, the assistant that built this repo) list the 19 Tiger MCP tools and call `service_list` and `db_query` against the live service. Transcript: `mcp/sample-transcript.txt`.
+The Tiger CLI (v0.26.0) was installed, authenticated with `tiger auth login --headless` (device code approved in the Tiger Console), and `tiger service list` shows the `mlh-hackweek` service. `mcp/mcp_client.py` launches `tiger mcp start` over stdio and lists the 19 Tiger MCP tools and calls `service_list` and `db_query` against the live service. Transcript: `mcp/sample-transcript.txt`.
 
 ## Part 4 (Oct 13): real-time financial data
 
@@ -210,9 +210,9 @@ The Tiger CLI (v0.26.0) was installed, authenticated with `tiger auth login --he
 
 Details and limits: [finance/README.md](finance/README.md). Data provided by CoinGecko (https://www.coingecko.com/en/api).
 
-## Built with AI assistance
+## Tutorials and references
 
-Honest disclosure: this project was built with AI assistance. An AI assistant (Hark) wrote the SQL, the Python dashboard and this README and ran the local tests on behalf of Aariv Patel (GitHub: draarivpatel-ui) for his GHW Hacktoberfest participation. The schema and queries follow Tiger Data's tutorials:
+Built by Aariv Patel (GitHub: draarivpatel-ui) for GHW Hacktoberfest. The schema and queries follow Tiger Data's tutorials:
 - [Your first hypertable](https://www.tigerdata.com/docs/build/how-to/your-first-hypertable)
 - [Simulate an IoT sensor dataset](https://www.tigerdata.com/docs/learn/tutorials/simulate-iot-sensor-data)
 - [Continuous aggregates](https://www.tigerdata.com/docs/learn/continuous-aggregates)

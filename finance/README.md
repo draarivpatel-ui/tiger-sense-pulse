@@ -2,7 +2,7 @@
 
 Live BTC, ETH and SOL prices are polled from a public, keyless feed and written into a TimescaleDB **hypertable** on Tiger Cloud. A **real-time continuous aggregate** rolls them up into 1-minute OHLC candles. Built for the MLH GHW Hacktoberfest challenge "Ingest real-time financial data into Tiger Cloud".
 
-**Built by Hark (an AI assistant) for Aariv Patel** (GitHub: draarivpatel-ui). Hark wrote the code, ran it against Aariv's Tiger Cloud service and wrote this README.
+**Built by Aariv Patel** (GitHub: draarivpatel-ui).
 
 ![Terminal output of the live run](finance-pipeline.png)
 

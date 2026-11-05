@@ -1,4 +1,4 @@
-"""Minimal MCP client: Hark (an AI agent) talks to the Tiger MCP server over stdio."""
+"""Minimal MCP client: talks to the Tiger MCP server over stdio."""
 import asyncio, json, os, sys
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client

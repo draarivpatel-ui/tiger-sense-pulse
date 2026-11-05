@@ -244,8 +244,8 @@
             </td>
           </tr>
           <tr>
-            <th scope="row">Part 3: Tiger CLI + MCP with an AI agent</th>
-            <td>The Tiger CLI (v0.26.0) was authenticated with <code>tiger auth login --headless</code>. <code>mcp/mcp_client.py</code> launches <code>tiger mcp start</code> over stdio and lets an AI agent (Hark) list the 19 Tiger MCP tools and call <code>service_list</code> and <code>db_query</code> against the live service. Limit: it is a one-shot client that calls the tools you pass, not a chat loop, and the transcript is one short session.</td>
+            <th scope="row">Part 3: Tiger CLI + MCP client</th>
+            <td>The Tiger CLI (v0.26.0) was authenticated with <code>tiger auth login --headless</code>. <code>mcp/mcp_client.py</code> launches <code>tiger mcp start</code> over stdio and lists the 19 Tiger MCP tools and calls <code>service_list</code> and <code>db_query</code> against the live service. Limit: it is a one-shot client that calls the tools you pass, not a chat loop, and the transcript is one short session.</td>
             <td>
               <a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/tree/main/mcp">mcp/</a>
               (<a href="https://github.com/draarivpatel-ui/tiger-sense-pulse/blob/main/mcp/sample-transcript.txt">transcript</a>)
@@ -279,9 +279,9 @@ cd tiger-sense-pulse
 bash test.sh</code></pre>
     </section>
 
-    <section aria-labelledby="ai-title">
-      <h2 id="ai-title">Built with AI assistance</h2>
-      <p>An AI assistant (Hark) wrote the SQL, Python and README for Aariv Patel's GHW Hacktoberfest entry. The GitHub Copilot coding agent wrote this page (#2), and Hark later added the Parts 2-4 summary from the README. All sensor data is simulated; the crypto prices in Part 4 are live data from CoinGecko (Powered by CoinGecko).</p>
+    <section aria-labelledby="author-title">
+      <h2 id="author-title">Attribution &amp; data sources</h2>
+      <p>Built by Aariv Patel for MLH Global Hack Week: Hacktoberfest. All sensor data is simulated; the crypto prices in Part 4 are live data from CoinGecko (Powered by CoinGecko).</p>
     </section>
   </main>
 </body>

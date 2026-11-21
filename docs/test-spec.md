@@ -1,0 +1,29 @@
+# dashboard.py edge-case test spec
+
+Observed by calling `svg_chart` directly in Python (psycopg stubbed), 2026-10-13. No app behavior changed.
+
+| # | Input | Observed | Verdict |
+|---|-------|----------|---------|
+| D1 | `{}` or `{"a": []}` | hint paragraph "No data yet" | covered by test_empty_series |
+| D2 | one timestamp | no ZeroDivision (`max(t1-t0,1)`) | covered by test_single_timestamp_does_not_divide_by_zero + test_flat_line_and_single_timestamp_give_finite_coordinates |
+| D3 | all values equal (flat line) | `lo/hi` padded by ±1, no divide by zero | covered by test_flat_line_and_single_timestamp_give_finite_coordinates |
+| D4 | NaN value | no exception, but polyline contains `nan` coordinates (invalid SVG, line vanishes) | fixed 2026-10-14: `svg_chart` drops non-finite values and `main` skips NULL `avg_temp`; covered by test_nan_and_inf_values_are_dropped_not_drawn + test_null_hourly_average_is_skipped_by_main |
+| D5 | naive datetimes | works (timestamp() uses local tz); DB returns tz-aware, so low risk | covered 2026-10-14 by test_naive_datetimes_give_finite_coordinates (finite, in-viewBox, left-to-right x) |
+| D6 | >6 sensors | colors cycle by modulo | covered by test_colors_cycle_and_legend_escapes_names (7 series, 7th stroke = 1st) |
+| D7 | sensor name with HTML | escaped in legend and tables | legend: test_colors_cycle_and_legend_escapes_names; summary location: test_escapes_text_from_the_database; sensor name in summary + anomaly tables: test_sensor_name_with_html_is_escaped_in_both_tables (added 2026-10-14; before it only the location column was tested) |
+| D8 | empty DB in `main` | page still written, anomaly row says "No anomalies found." | covered by test_empty_database_still_writes_a_page (2026-10-14: now also asserts the "No anomalies found." row, which it did not check before) |
+| D9 | tz label | anomaly hours print "UTC" but come from DB bucket tz; correct only if session tz is UTC | fixed 2026-10-13: hours converted with `astimezone(utc)`; covered by test_anomaly_hour_is_printed_in_utc_even_if_session_tz_differs. Naive buckets (2026-10-14): unreachable today because `sensor_data.time` is TIMESTAMPTZ, so buckets are timestamptz and psycopg returns aware datetimes; if one ever appears it is printed unchanged and assumed UTC. Pinned by test_naive_anomaly_hour_is_assumed_utc_and_schema_keeps_buckets_tz_aware (column type + naive print). No `SET TIME ZONE` added: app code unchanged |
+| D10 | session time zone vs the anomaly 'typical hour' | ANOMALY_SQL (= sql/04_queries.sql query 5) groups and joins on `extract(hour FROM bucket)`; `bucket` is timestamptz, so the hour label follows the DB session `TimeZone`. In a non-UTC session whose zone changes DST inside the 7-day window, one local hour covers two UTC hours (e.g. America/Chicago, now = 2026-11-04 23:00Z: local 15 = UTC 20 and 21), so the median mixes neighbouring hours | documented 2026-10-14, no code change. Offline replay of the generator's simulation (tests/test_generator.py `simulate()`, 25 seeds per case) in America/Chicago, Asia/Kolkata and Europe/London, with and without a US fall-back inside the window: flagged hours identical to a UTC session in every case (0 differences), because the injected incidents (+9/+12 °C) sit far above the 4 °C threshold. Real data near the threshold in a DST week could gain or lose a flag. If ever fixed: use `extract(hour FROM bucket AT TIME ZONE 'UTC')` in both query 5 and ANOMALY_SQL together (test_sql_lint requires them identical), or `SET TIME ZONE 'UTC'` on the dashboard connection. Display side already safe (D9) |
+
+All three proposed tests (D3, D4, D9) are now in tests/test_dashboard.py. Every row D1-D9 now names its test (D10 is a documented limitation, not a test) (2026-10-14: +D5 and D7-tables tests, D8 assertion added; suite 70 tests, dashboard 17; +D9 naive-bucket test: suite 71, dashboard 18). Those are the counts at the time; the finance tests added later bring the suite to 79 (dashboard still 18), and the README incident-wording pin in tests/test_readme.py (Oct 16, 2026) brings it to 80, and the step-1 shown-lines pin (Oct 16, 2026) brings it to 81, and the 7-day vs 8-UTC-day `sensor_daily` pin (Oct 16, 2026) brings it to 82; the README's "How it was tested" list is the current per-file count (checked by tests/test_readme.py).
+
+## finance/feed.py: HTTP 403 and 429 (added 2026-10-14)
+
+| # | Input | Before | Now |
+|---|-------|--------|-----|
+| F1 | CoinGecko answers HTTP 403 (bot block; `curl` got 403 from coingecko.com on 2026-10-14) | `fetch` re-raised `HTTPError`, so `ingest.py` stopped with a traceback | `fetch` raises `Blocked`; `poll` returns the last good prices, `live=False`, note "live prices unavailable (HTTP 403, request blocked by CoinGecko); showing last good prices from HH:MM:SS UTC"; `ingest.py` prints it, writes nothing, backs off. Covered by test_fetch_maps_http_403_to_blocked + test_http_403_falls_back_to_last_good_prices |
+| F2 | HTTP 429 or a 429 error body | `ingest.py` backed off but printed no prices | same fallback and note with "HTTP 429, rate limited". Covered by test_fetch_maps_http_429_to_rate_limited + test_http_429_falls_back_to_last_good_prices |
+| F3 | 403/429 before any live poll and an empty table | n/a | empty tick list, note ends "no cached prices yet". Covered by test_block_before_any_live_poll_says_no_cached_prices |
+| F4 | other HTTP errors (e.g. 500) | raised | still raised (unchanged). Covered by test_other_http_errors_still_propagate |
+
+Fallback ticks are earlier real updates, never new or sample data; test_ingester_only_writes_live_polls_and_prints_the_note pins that only live polls reach the `INSERT`.

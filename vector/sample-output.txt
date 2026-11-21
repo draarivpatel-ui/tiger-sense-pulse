@@ -1,0 +1,28 @@
+pgvector 0.8.7
+pgvectorscale 0.9.0
+
+=== "the air conditioning broke and the room overheated"  [All notes]
+  Oct 09 16:45 UTC | server-rm  | sim 0.764 | hour max 25.8 C | Server closet alarm: room is warm and the wall AC unit is blowing room-temperature air.
+  Oct 09 17:20 UTC | server-rm  | sim 0.757 | hour max 26.38 C | Server room air conditioner compressor failed. Opened the door and set up a box fan.
+  Oct 08 10:20 UTC | library    | sim 0.741 | hour max 22.54 C | Moved the space heater out of the study room after complaints.
+
+=== "plants damaged by heat"  [Only Oct 7 (time filter)]
+  Oct 07 18:40 UTC | greenhouse | sim 0.726 | hour max 32.87 C | Greenhouse is really hot, tomato leaves wilting. Is the vent stuck?
+  Oct 07 21:10 UTC | greenhouse | sim 0.714 | hour max 42.06 C | Lost a tray of basil to the heat. Asked for a high-temperature alert on the greenhouse.
+  Oct 07 20:50 UTC | greenhouse | sim 0.653 | hour max 42.34 C | Reset breaker, vent open again, temperature dropping back to normal.
+
+=== "something is making noise or vibrating"  [Indoor sensors only (metadata filter)]
+  Oct 06 09:15 UTC | lab-1      | sim 0.681 | hour max 20.98 C | Laser cutter exhaust fan is rattling, ticket filed with facilities.
+  Oct 08 09:00 UTC | lab-1      | sim 0.609 | hour max 21.04 C | Exhaust fan fixed, laser cutter back in service.
+  Oct 10 11:00 UTC | library    | sim 0.608 | hour max 22.73 C | Study room quiet and comfortable today.
+
+Query plan (seqscan disabled to show the index):
+  Limit  (cost=4.10..4.30 rows=3 width=40)
+    ->  Result  (cost=4.10..83.10 rows=1200 width=40)
+          ->  Merge Append  (cost=4.10..68.10 rows=1200 width=64)
+                Sort Key: ((maintenance_notes.embedding <=> '[...384 floats...]'::vector))
+                ->  Index Scan using _hyper_7_14_chunk_maintenance_notes_embedding_idx on _hyper_7_14_chunk  (cost=2.04..28.05 rows=600 width=64)
+                      Order By: (embedding <=> '[...384 floats...]'::vector)
+                ->  Index Scan using _hyper_7_15_chunk_maintenance_notes_embedding_idx on _hyper_7_15_chunk  (cost=2.04..28.05 rows=600 width=64)
+                      Order By: (embedding <=> '[...384 floats...]'::vector)
+  Allocated Memory: allocated_by_plan=153kB base_allocation=4100kB

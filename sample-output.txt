@@ -1,0 +1,143 @@
+==> sql/01_schema.sql
+psql:sql/01_schema.sql:5: NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to table _timescaledb_internal._hyper_6_23_chunk
+drop cascades to table _timescaledb_internal._hyper_6_24_chunk
+psql:sql/01_schema.sql:6: NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to table _timescaledb_internal._hyper_5_21_chunk
+drop cascades to table _timescaledb_internal._hyper_5_22_chunk
+psql:sql/01_schema.sql:34: NOTICE:  using column "time" as partitioning column
+HINT:  Use "timescaledb.partition_column" to specify a different column to use as partitioning column.
+==> sql/02_simulate.sql
+==> sql/03_continuous_aggregates.sql
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1007
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1008
+(1 row)
+
+==> sql/04_queries.sql
+--- 1. Hypertable health: chunks and row count
+ hypertable_name | num_chunks 
+-----------------+------------
+ sensor_data     |          8
+(1 row)
+
+ raw_rows 
+----------
+    12102
+(1 row)
+
+--- 2. Latest reading per sensor (joins time-series with metadata)
+    name    |      location      |          time          | temperature | humidity 
+------------+--------------------+------------------------+-------------+----------
+ courtyard  | Front courtyard    | 2026-10-10 23:00:00+00 |       30.66 |     53.3
+ greenhouse | Science greenhouse | 2026-10-10 23:00:00+00 |       31.53 |     53.2
+ lab-1      | Robotics lab       | 2026-10-10 23:00:00+00 |       22.87 |     48.9
+ lab-2      | Chemistry lab      | 2026-10-10 23:00:00+00 |       22.51 |       52
+ library    | Library study room | 2026-10-10 23:00:00+00 |       23.66 |     53.9
+ server-rm  | Server closet      | 2026-10-10 23:00:00+00 |       25.73 |     54.3
+(6 rows)
+
+--- 3. 30-minute averages with last() for one sensor, last 3 hours
+         period         | avg_temp | last_temp | avg_cpu 
+------------------------+----------+-----------+---------
+ 2026-10-10 20:30:00+00 |    32.96 |     32.70 |   0.332
+ 2026-10-10 21:00:00+00 |    32.56 |     32.35 |   0.269
+ 2026-10-10 21:30:00+00 |    32.56 |     32.62 |   0.342
+ 2026-10-10 22:00:00+00 |    32.08 |     32.17 |   0.279
+ 2026-10-10 22:30:00+00 |    31.60 |     31.30 |   0.271
+ 2026-10-10 23:00:00+00 |    31.53 |     31.53 |   0.358
+(6 rows)
+
+--- 4. Daily summary from the hierarchical continuous aggregate
+    day     |    name    | avg_c | min_c | max_c 
+------------+------------+-------+-------+-------
+ 2026-10-03 | greenhouse |  30.7 |  30.1 |  31.3
+ 2026-10-04 | greenhouse |  27.0 |  20.6 |  33.3
+ 2026-10-05 | greenhouse |  27.0 |  20.6 |  33.3
+ 2026-10-06 | greenhouse |  27.0 |  20.7 |  33.4
+ 2026-10-07 | greenhouse |  27.8 |  20.7 |  42.3
+ 2026-10-08 | greenhouse |  27.0 |  20.6 |  33.3
+ 2026-10-09 | greenhouse |  27.0 |  20.7 |  33.4
+ 2026-10-10 | greenhouse |  27.0 |  20.8 |  33.3
+ 2026-10-03 | server-rm  |  25.5 |  25.2 |  25.9
+ 2026-10-04 | server-rm  |  24.0 |  21.2 |  26.8
+ 2026-10-05 | server-rm  |  24.0 |  21.2 |  26.8
+ 2026-10-06 | server-rm  |  24.0 |  21.2 |  26.9
+ 2026-10-07 | server-rm  |  24.0 |  21.2 |  26.9
+ 2026-10-08 | server-rm  |  24.0 |  21.1 |  26.9
+ 2026-10-09 | server-rm  |  24.6 |  21.1 |  38.2
+ 2026-10-10 | server-rm  |  24.0 |  21.2 |  26.8
+(16 rows)
+
+--- 5. Anomaly finder: hours running > 4 C above that sensor's typical (median) for the same hour of day
+    name    |         bucket         | max_temp | above_typical 
+------------+------------------------+----------+---------------
+ greenhouse | 2026-10-07 19:00:00+00 |     42.2 |           8.8
+ greenhouse | 2026-10-07 20:00:00+00 |     42.3 |           9.0
+ server-rm  | 2026-10-09 17:00:00+00 |     38.2 |          12.0
+(3 rows)
+
+--- 6. Speed check: raw table vs continuous aggregate for the same question
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Finalize HashAggregate (actual time=3.242..3.363 rows=1014 loops=1)
+   Group Key: (time_bucket('01:00:00'::interval, sensor_data."time")), sensor_data.sensor_id
+   Batches: 1  Memory Usage: 369kB
+   ->  Append (actual time=0.024..3.058 rows=1014 loops=1)
+         ->  Partial HashAggregate (actual time=0.024..0.025 rows=6 loops=1)
+               Group Key: time_bucket('01:00:00'::interval, _hyper_7_25_chunk."time"), _hyper_7_25_chunk.sensor_id
+               Batches: 1  Memory Usage: 24kB
+               ->  Seq Scan on _hyper_7_25_chunk (actual time=0.004..0.010 rows=72 loops=1)
+         ->  Partial HashAggregate (actual time=0.400..0.416 rows=144 loops=1)
+               Group Key: time_bucket('01:00:00'::interval, _hyper_7_26_chunk."time"), _hyper_7_26_chunk.sensor_id
+               Batches: 1  Memory Usage: 61kB
+               ->  Seq Scan on _hyper_7_26_chunk (actual time=0.003..0.165 rows=1728 loops=1)
+         ->  Partial HashAggregate (actual time=0.400..0.416 rows=144 loops=1)
+               Group Key: time_bucket('01:00:00'::interval, _hyper_7_27_chunk."time"), _hyper_7_27_chunk.sensor_id
+               Batches: 1  Memory Usage: 61kB
+               ->  Seq Scan on _hyper_7_27_chunk (actual time=0.003..0.165 rows=1728 loops=1)
+         ->  Partial HashAggregate (actual time=0.400..0.415 rows=144 loops=1)
+               Group Key: time_bucket('01:00:00'::interval, _hyper_7_28_chunk."time"), _hyper_7_28_chunk.sensor_id
+               Batches: 1  Memory Usage: 61kB
+               ->  Seq Scan on _hyper_7_28_chunk (actual time=0.003..0.164 rows=1728 loops=1)
+         ->  Partial HashAggregate (actual time=0.399..0.414 rows=144 loops=1)
+               Group Key: time_bucket('01:00:00'::interval, _hyper_7_29_chunk."time"), _hyper_7_29_chunk.sensor_id
+               Batches: 1  Memory Usage: 61kB
+               ->  Seq Scan on _hyper_7_29_chunk (actual time=0.003..0.164 rows=1728 loops=1)
+         ->  Partial HashAggregate (actual time=0.434..0.449 rows=144 loops=1)
+               Group Key: time_bucket('01:00:00'::interval, _hyper_7_30_chunk."time"), _hyper_7_30_chunk.sensor_id
+               Batches: 1  Memory Usage: 61kB
+               ->  Seq Scan on _hyper_7_30_chunk (actual time=0.003..0.164 rows=1728 loops=1)
+         ->  Partial HashAggregate (actual time=0.423..0.439 rows=144 loops=1)
+               Group Key: time_bucket('01:00:00'::interval, _hyper_7_31_chunk."time"), _hyper_7_31_chunk.sensor_id
+               Batches: 1  Memory Usage: 61kB
+               ->  Seq Scan on _hyper_7_31_chunk (actual time=0.003..0.183 rows=1728 loops=1)
+         ->  Partial HashAggregate (actual time=0.393..0.409 rows=144 loops=1)
+               Group Key: time_bucket('01:00:00'::interval, _hyper_7_32_chunk."time"), _hyper_7_32_chunk.sensor_id
+               Batches: 1  Memory Usage: 61kB
+               ->  Seq Scan on _hyper_7_32_chunk (actual time=0.003..0.163 rows=1662 loops=1)
+ Planning Time: 0.152 ms
+ Execution Time: 3.512 ms
+(38 rows)
+
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Append (actual time=0.003..0.161 rows=1014 loops=1)
+   ->  Seq Scan on _hyper_8_33_chunk (actual time=0.003..0.086 rows=1008 loops=1)
+   ->  Seq Scan on _hyper_8_34_chunk (actual time=0.001..0.002 rows=6 loops=1)
+ Planning Time: 0.058 ms
+ Execution Time: 0.202 ms
+(5 rows)
+
+--- 7. Background jobs that keep the CAGGs fresh
+ job_id |              proc_name              | schedule_interval | hypertable_name 
+--------+-------------------------------------+-------------------+-----------------
+   1007 | policy_refresh_continuous_aggregate | 00:30:00          | sensor_hourly
+   1008 | policy_refresh_continuous_aggregate | 01:00:00          | sensor_daily
+(2 rows)
+

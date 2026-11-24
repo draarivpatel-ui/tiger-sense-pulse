@@ -1,8 +1,11 @@
 """finance/query.py helpers: formatting and plain-text table rendering (offline only)."""
+import contextlib
 import datetime
+import io
 import sys
 import unittest
 from decimal import Decimal
+from unittest import mock
 
 from sqlutil import ROOT
 
@@ -27,8 +30,23 @@ class FormatHelpers(unittest.TestCase):
         self.assertEqual(query.fmt(datetime.datetime(2026, 10, 13, 22, 6, 24, tzinfo=datetime.timezone.utc)),
                          "2026-10-13 22:06:24+00")
 
+    def test_fmt_aware_datetime_is_normalized_to_utc(self):
+        chennai = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+        aware = datetime.datetime(2026, 10, 13, 22, 0, tzinfo=chennai)
+        self.assertEqual(query.fmt(aware), "2026-10-13 16:30:00+00")
+
     def test_fmt_strips_terminal_control_characters(self):
         self.assertEqual(query.fmt("safe\x1b[2J\x07text"), "safe[2Jtext")
+
+
+class CliArguments(unittest.TestCase):
+    def test_minutes_must_be_positive(self):
+        for value in ["0", "-5"]:
+            with self.subTest(value=value), mock.patch.object(sys, "argv", ["query.py", "--minutes", value]), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as cm:
+                    query.main()
+                self.assertEqual(cm.exception.code, 2)
 
 
 class TableHelpers(unittest.TestCase):

@@ -5,7 +5,7 @@ Usage: DATABASE_URL=postgres://... python finance/query.py [--minutes 10]
 import argparse
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Terminal control characters are stripped from database text so a stored
 # string cannot move the cursor or rewrite what the report printed.
@@ -28,8 +28,20 @@ QUERIES = [
 ]
 
 
+def positive_int(value):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError("must be a positive whole number")
+    if number < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return number
+
+
 def fmt(v):
     if isinstance(v, datetime):
+        if v.utcoffset() is not None:
+            v = v.astimezone(timezone.utc)
         return v.strftime("%Y-%m-%d %H:%M:%S") + ("+00" if v.utcoffset() is not None else "")
     if hasattr(v, "strftime"):  # a datetime.date has no utcoffset() and no time to show
         return v.strftime("%Y-%m-%d")
@@ -47,7 +59,7 @@ def table(cols, rows):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--minutes", type=int, default=10)
+    ap.add_argument("--minutes", type=positive_int, default=10)
     args = ap.parse_args()
     import psycopg
     with psycopg.connect(os.environ["DATABASE_URL"], autocommit=True) as conn:

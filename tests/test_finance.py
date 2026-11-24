@@ -1,4 +1,5 @@
 """finance/: parsing, de-duplication and pacing of the keyless CoinGecko feed, plus the schema file (no network, no database)."""
+import http.client
 import io
 import json
 import math
@@ -188,6 +189,19 @@ class BlockedAndRateLimitedFallback(unittest.TestCase):
         r = feed.poll("u", {}, fetcher=_raiser(urllib.error.URLError("dns")))
         self.assertEqual((r.ticks, r.live, r.status), ([], False, 0))
         self.assertIn("no cached prices yet", r.note)
+
+    def test_direct_read_and_connection_failures_use_the_same_fallback(self):
+        """urlopen can surface read errors outside URLError after the response starts."""
+        for exc in [http.client.IncompleteRead(b"partial"), http.client.RemoteDisconnected("closed"),
+                    ConnectionResetError("reset by peer")]:
+            with self.subTest(exc=type(exc).__name__):
+                cache = {}
+                feed.poll("u", cache, fetcher=lambda url: SAMPLE)
+                r = feed.poll("u", cache, fetcher=_raiser(exc))
+                self.assertFalse(r.live)
+                self.assertEqual(r.status, 0)
+                self.assertEqual(len(r.ticks), 3)
+                self.assertIn("network error", r.note)
 
     def test_block_before_any_live_poll_says_no_cached_prices(self):
         for exc, code in [(feed.Blocked("HTTP 403"), 403), (feed.RateLimited("HTTP 429"), 429)]:

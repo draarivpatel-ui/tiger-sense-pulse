@@ -3,6 +3,7 @@
 Feed: GET https://api.coingecko.com/api/v3/simple/price  (CoinGecko Keyless Public API: no key, no sign-up)
 Data provided by CoinGecko: https://www.coingecko.com/en/api
 """
+import http.client
 import json
 from collections import namedtuple
 import urllib.error
@@ -167,6 +168,8 @@ def poll(url, last_good, fetcher=fetch):
         status, why = 0, "network error (%s)" % e
     except json.JSONDecodeError:
         status, why = 0, "unreadable (non-JSON) response"
+    except (http.client.HTTPException, OSError) as e:
+        status, why = 0, "network error (%s)" % e
     except FeedError as e:
         status, why = 0, "feed error (%s)" % e
     except Blocked:

@@ -110,6 +110,7 @@ def main():
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2338bdf8'/%3E%3C/svg%3E">
 <title>Sensor Pulse · Tiger Cloud IoT demo</title>
 <style>
  :root{{color-scheme:dark;--bg:#090c10;--surface:#11161f;--border:#1e293b;--ink:#e2e8f0;--muted:#94a3b8;--accent:#38bdf8;--signal:#34d399}}

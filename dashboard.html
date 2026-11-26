@@ -30,6 +30,8 @@
  tr:hover td{background:rgba(56,189,248,.04)}
  .tw{overflow-x:auto}
  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+@media print{@page{margin:12mm} :root{color-scheme:light;--bg:#fff;--surface:#fff;--surface-header:#fff;--border:#777;--ink:#111;--text:#111;--muted:#444} *,*::before,*::after{animation:none!important;box-shadow:none!important;text-shadow:none!important;transition:none!important} html,body{background:#fff!important;color:#111!important} nav,button,input,select,textarea{display:none!important} body{max-width:none!important;font-size:11pt} table,.legend,svg{background:#fff!important;color:#111!important;border-color:#777!important;box-shadow:none!important} .tw{max-height:none!important;overflow:visible!important} table{width:100%!important;min-width:0!important;font-size:8.5pt} th,td{overflow-wrap:anywhere;padding:3px 5px!important} tr{break-inside:avoid} a,code{color:#111!important}}
 </style></head><body>
 <h1>Sensor Pulse</h1>
 <p class="sub">Simulated school IoT sensors on TimescaleDB · generated 2026-10-10 23:49 UTC from continuous aggregates</p>

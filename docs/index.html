@@ -177,7 +177,125 @@
         transition-duration: 0.01ms !important;
       }
     }
-  </style>
+  
+@media print {
+  @page { margin: 12mm; }
+
+  :root,
+  html[data-theme],
+  :root[data-theme="dark"],
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #fff;
+    --surface: #fff;
+    --surface-header: #fff;
+    --border: #777;
+    --ink: #111;
+    --text: #111;
+    --muted: #444;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    transition: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  body {
+    font-size: 11pt;
+  }
+
+  header,
+  nav,
+  .top,
+  .bar,
+  .masthead,
+  .bench__live {
+    position: static !important;
+  }
+
+  nav, button, input, select, textarea {
+    display: none !important;
+  }
+
+  main, body {
+    display: block !important;
+    max-width: none !important;
+    width: auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  table, .legend, svg {
+    background: #fff !important;
+    color: #111 !important;
+    border-color: #777 !important;
+    box-shadow: none !important;
+  }
+
+  .tw {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  table {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 8.5pt;
+  }
+
+  th,
+  td {
+    overflow-wrap: anywhere;
+    padding: 3px 5px !important;
+  }
+
+  tr,
+  .panel,
+  .card,
+  .module-block,
+  .metric,
+  .stat {
+    break-inside: avoid;
+  }
+
+  pre,
+  code {
+    color: #111 !important;
+  }
+
+  pre {
+    max-height: none !important;
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    background: #fff !important;
+    border-color: #777 !important;
+  }
+
+  canvas,
+  svg {
+    max-width: 100% !important;
+  }
+
+  a {
+    color: #111 !important;
+  }
+
+}
+
+</style>
 </head>
 <body>
   <main>
